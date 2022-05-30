@@ -1,0 +1,5 @@
+[workspace]
+members = [
+    "src/enoki_wrapped_token",
+    "src/enoki_wrapped_token_shard",
+]

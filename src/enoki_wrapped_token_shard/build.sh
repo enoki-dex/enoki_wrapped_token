@@ -1,0 +1,1 @@
+cargo run > enoki_wrapped_token_shard.did
