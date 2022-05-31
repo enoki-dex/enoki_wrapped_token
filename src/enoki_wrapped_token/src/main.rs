@@ -1,5 +1,3 @@
-use std::collections::HashMap;
-use std::iter::FromIterator;
 use std::string::String;
 
 use candid::{candid_method, CandidType, Deserialize, Principal, types::number::Nat};

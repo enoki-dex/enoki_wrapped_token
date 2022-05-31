@@ -1,17 +1,21 @@
-type Result = variant { Ok; Err : TxError };
+type Result = variant {
+    Ok;
+    Err : TxError
+};
+
 type TxError = variant {
-  TransferCallbackError : text;
-  InsufficientBalance;
-  TransferValueTooSmall;
-  Unauthorized;
-  AccountDoesNotExist;
-  AccountAlreadyExists;
-  Other : text;
+    TransferCallbackError : text;
+    InsufficientBalance;
+    TransferValueTooSmall;
+    Unauthorized;
+    AccountDoesNotExist;
+    AccountAlreadyExists;
+    Other : text;
 };
 service : (principal, principal) -> {
-  create_account : (principal) -> (Result);
-  transfer : (principal, nat) -> (Result);
-  transferAndCall : (principal, nat, func () -> ()) -> (Result);
-  unwrap : () -> ();
-  wrap : () -> ();
+    create_account : (principal) -> (Result);
+    transfer : (principal, nat) -> (Result);
+    transferAndCall : (principal, nat, func () -> ()) -> (Result);
+    unwrap : () -> ();
+    wrap : () -> ();
 }

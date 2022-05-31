@@ -1,10 +1,7 @@
-use std::collections::HashMap;
-use std::iter::FromIterator;
 use std::string::String;
 
-use candid::{candid_method, CandidType, Deserialize, Principal, types::number::Nat};
+use candid::{CandidType, Deserialize, Principal};
 use ic_cdk::api::call::RejectionCode;
-use ic_cdk_macros::*;
 
 #[derive(CandidType, Debug, Deserialize)]
 pub enum TxError {
@@ -14,6 +11,7 @@ pub enum TxError {
     AccountAlreadyExists,
     TransferValueTooSmall,
     TransferCallbackError(String),
+    UnderlyingTransferFailure,
     Other(String),
 }
 

@@ -1,23 +1,22 @@
-use std::borrow::BorrowMut;
 use std::cell::RefCell;
 use std::collections::HashMap;
 use std::ops::{AddAssign, Sub, SubAssign};
 
 use candid::{candid_method, CandidType, Deserialize, Func, Principal, types::number::Nat};
-use ic_cdk::api::call::RejectionCode;
 use ic_cdk_macros::*;
 
 use enoki_wrapped_token_shared::types::*;
 
 use crate::fees::accept_fee;
 use crate::management::{assert_is_manager_contract, get_fee};
+use crate::stable::{StableEscrowBalances, StableShardBalances};
 
-type ShardBalances = HashMap<Principal, Nat>;
+pub type ShardBalances = HashMap<Principal, Nat>;
 
 #[derive(Deserialize, CandidType, Clone, Debug, Default)]
-struct EscrowBalances {
-    last_id: u64,
-    deposits: HashMap<u64, Nat>,
+pub struct EscrowBalances {
+    pub last_id: u64,
+    pub deposits: HashMap<u64, Nat>,
 }
 
 impl EscrowBalances {
@@ -34,11 +33,23 @@ impl EscrowBalances {
     }
 }
 
-pub const MAX_ACCOUNTS_PER_SHARD: u64 = 1_000;
-
 thread_local! {
     static SHARD_BALANCES: RefCell<ShardBalances> = RefCell::new(ShardBalances::default());
     static FUNDS_IN_ESCROW: RefCell<EscrowBalances> = RefCell::new(EscrowBalances::default());
+}
+
+pub fn export_stable_storage() -> (StableShardBalances, StableEscrowBalances) {
+    let shard_balances: StableShardBalances = SHARD_BALANCES.with(|b| b.take()).into();
+    let escrow_balances: StableEscrowBalances = FUNDS_IN_ESCROW.with(|b| b.take()).into();
+    (shard_balances, escrow_balances)
+}
+
+pub fn import_stable_storage(
+    shard_balances: StableShardBalances,
+    escrow_balances: StableEscrowBalances,
+) {
+    SHARD_BALANCES.with(|b| b.replace(shard_balances.into()));
+    FUNDS_IN_ESCROW.with(|b| b.replace(escrow_balances.into()));
 }
 
 pub fn assert_is_customer(user: &Principal) -> Result<()> {
@@ -116,8 +127,8 @@ fn charge_fee(user: Principal, fee: Nat) -> Result<()> {
     Ok(())
 }
 
-#[update(name = "transfer")]
-#[candid_method(update)]
+#[update(name = "shardTransfer")]
+#[candid_method(update, rename = "shardTransfer")]
 fn transfer(to: Principal, value: Nat) -> Result<()> {
     let from = ic_cdk::caller();
     let fee = get_fee();
@@ -135,8 +146,8 @@ fn transfer(to: Principal, value: Nat) -> Result<()> {
     Ok(())
 }
 
-#[update(name = "transferAndCall")]
-#[candid_method(update, rename = "transferAndCall")]
+#[update(name = "shardTransferAndCall")]
+#[candid_method(update, rename = "shardTransferAndCall")]
 async fn transfer_and_call(to: Principal, value: Nat, notify: Func) -> Result<()> {
     let from = ic_cdk::caller();
     let fee = get_fee();
