@@ -1,4 +1,5 @@
 use std::cell::RefCell;
+use std::collections::HashSet;
 
 use candid::{candid_method, CandidType, Deserialize, Principal, types::number::Nat};
 use ic_cdk_macros::*;
@@ -15,8 +16,8 @@ pub fn assert_is_manager_contract() -> Result<()> {
     }
 }
 
-pub fn assert_is_owner() -> Result<()> {
-    if MANAGER_CONTRACT_DATA.with(|s| s.borrow().owner) == ic_cdk::caller() {
+pub fn assert_is_sibling(id: &Principal) -> Result<()> {
+    if MANAGER_CONTRACT_DATA.with(|s| s.borrow().sibling_shards.contains(id)) {
         Ok(())
     } else {
         Err(TxError::Unauthorized)
@@ -29,6 +30,8 @@ pub struct ManagerContractData {
     pub manager_contract: Principal,
     pub fee: Nat,
     pub underlying_token: Principal,
+    pub sibling_shards: HashSet<Principal>,
+    pub deploy_time: u64,
 }
 
 impl Default for ManagerContractData {
@@ -38,6 +41,8 @@ impl Default for ManagerContractData {
             manager_contract: Principal::anonymous(),
             fee: Default::default(),
             underlying_token: Principal::anonymous(),
+            sibling_shards: Default::default(),
+            deploy_time: 0,
         }
     }
 }
@@ -60,6 +65,12 @@ thread_local! {
     static MANAGER_CONTRACT_DATA: RefCell<ManagerContractData> = RefCell::new(ManagerContractData::default());
 }
 
+#[query(name = "getManagementDetails")]
+#[candid_method(query, rename = "getManagementDetails")]
+fn get_management_details() -> ManagerContractData {
+    MANAGER_CONTRACT_DATA.with(|d| d.borrow().clone())
+}
+
 #[query(name = "getOwner")]
 #[candid_method(query, rename = "getOwner")]
 fn get_owner() -> Principal {
@@ -73,6 +84,67 @@ fn set_owner(new_owner: Principal) -> Result<()> {
         let owner = &mut d.borrow_mut().owner;
         if ic_cdk::caller() == *owner {
             *owner = new_owner;
+            Ok(())
+        } else {
+            Err(TxError::Unauthorized)
+        }
+    })
+}
+
+#[update(name = "setFee")]
+#[candid_method(update, rename = "setFee")]
+fn set_fee(new_fee: Nat) -> Result<()> {
+    MANAGER_CONTRACT_DATA.with(|d| {
+        let mut data = d.borrow_mut();
+        if ic_cdk::caller() == data.manager_contract {
+            data.fee = new_fee;
+            Ok(())
+        } else {
+            Err(TxError::Unauthorized)
+        }
+    })
+}
+
+#[update(name = "initShard")]
+#[candid_method(update, rename = "initShard")]
+fn init_shard(underlying_token: Principal, sibling_shards: Vec<Principal>) -> Result<()> {
+    MANAGER_CONTRACT_DATA.with(|d| {
+        let mut data = d.borrow_mut();
+        if ic_cdk::caller() == data.manager_contract {
+            if data.underlying_token != underlying_token {
+                return Err(TxError::Other("Incompatible shard".to_string()));
+            }
+            for shard in sibling_shards {
+                data.sibling_shards.insert(shard);
+            }
+            Ok(())
+        } else {
+            Err(TxError::Unauthorized)
+        }
+    })
+}
+
+#[update(name = "addSiblingShard")]
+#[candid_method(update, rename = "addSiblingShard")]
+fn add_sibling_shard(new_shard: Principal) -> Result<()> {
+    MANAGER_CONTRACT_DATA.with(|d| {
+        let mut data = d.borrow_mut();
+        if ic_cdk::caller() == data.manager_contract {
+            data.sibling_shards.insert(new_shard);
+            Ok(())
+        } else {
+            Err(TxError::Unauthorized)
+        }
+    })
+}
+
+#[update(name = "removeSiblingShard")]
+#[candid_method(update, rename = "removeSiblingShard")]
+fn remove_sibling_shard(shard: Principal) -> Result<()> {
+    MANAGER_CONTRACT_DATA.with(|d| {
+        let mut data = d.borrow_mut();
+        if ic_cdk::caller() == data.manager_contract {
+            data.sibling_shards.remove(&shard);
             Ok(())
         } else {
             Err(TxError::Unauthorized)

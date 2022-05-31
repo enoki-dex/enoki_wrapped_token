@@ -1,12 +1,8 @@
 use std::cell::RefCell;
-use std::ops::{AddAssign, SubAssign};
+use std::ops::AddAssign;
 
-use candid::{candid_method, CandidType, Deserialize, Principal, types::number::Nat};
-use ic_cdk_macros::*;
+use candid::{CandidType, Deserialize, types::number::Nat};
 
-use enoki_wrapped_token_shared::types::*;
-
-use crate::management::assert_is_manager_contract;
 use crate::stable::StableFeeBalance;
 
 thread_local! {

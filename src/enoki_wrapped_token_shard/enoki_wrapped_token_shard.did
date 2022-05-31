@@ -1,21 +1,40 @@
-type Result = variant {
-    Ok;
-    Err : TxError
+type ManagerContractData = record {
+  fee : nat;
+  deploy_time : nat64;
+  underlying_token : principal;
+  owner : principal;
+  sibling_shards : vec principal;
+  manager_contract : principal;
 };
-
+type NotifyArgs = record { deposit_id : nat64; notify_func : func () -> () };
+type Result = variant { Ok; Err : TxError };
+type Result_1 = variant { Ok : nat; Err : TxError };
 type TxError = variant {
-    TransferCallbackError : text;
-    InsufficientBalance;
-    TransferValueTooSmall;
-    Unauthorized;
-    AccountDoesNotExist;
-    AccountAlreadyExists;
-    Other : text;
+  UnderlyingTransferFailure;
+  TransferCallbackError : text;
+  InsufficientBalance;
+  TransferValueTooSmall;
+  Unauthorized;
+  AccountDoesNotExist;
+  ShardDoesNotExist;
+  AccountAlreadyExists;
+  Other : text;
 };
-service : (principal, principal) -> {
-    create_account : (principal) -> (Result);
-    transfer : (principal, nat) -> (Result);
-    transferAndCall : (principal, nat, func () -> ()) -> (Result);
-    unwrap : () -> ();
-    wrap : () -> ();
+service : (principal, principal, principal) -> {
+  addSiblingShard : (principal) -> (Result);
+  createAccount : (principal) -> (Result);
+  getManagementDetails : () -> (ManagerContractData) query;
+  getOwner : () -> (principal) query;
+  initShard : (principal, vec principal) -> (Result);
+  removeSiblingShard : (principal) -> (Result);
+  setFee : (nat) -> (Result);
+  setOwner : (principal) -> (Result);
+  shardBalanceOf : (principal) -> (Result_1) query;
+  shardGetSupply : () -> (nat) query;
+  shardReceiveTransfer : (principal, nat) -> (Result);
+  shardReceiveTransferAndCall : (principal, nat, NotifyArgs) -> (Result);
+  shardTransfer : (principal, principal, nat) -> (Result);
+  shardTransferAndCall : (principal, principal, nat, NotifyArgs) -> (Result);
+  unwrap : (nat, principal) -> (Result);
+  wrap : (nat) -> (Result);
 }

@@ -1,24 +1,52 @@
-use std::borrow::{Borrow, BorrowMut};
 use std::cell::RefCell;
-use std::collections::HashMap;
 
-use candid::{candid_method, types::number::Nat, CandidType, Deserialize, Principal};
+use candid::{candid_method, CandidType, Principal};
 use ic_cdk_macros::*;
+use serde::{Deserialize, Serialize};
 
 use enoki_wrapped_token_shared::types::*;
 
 use crate::management::assert_is_owner;
 
-#[derive(Deserialize, CandidType, Clone, Debug, Default)]
+#[derive(Serialize, Deserialize, CandidType, Clone, Debug)]
 pub struct Metadata {
     pub logo: String,
     pub name: String,
     pub symbol: String,
     pub decimals: u8,
+    pub underlying_token: Principal,
+}
+
+impl Default for Metadata {
+    fn default() -> Self {
+        Self {
+            logo: "".to_string(),
+            name: "".to_string(),
+            symbol: "".to_string(),
+            decimals: 0,
+            underlying_token: Principal::anonymous(),
+        }
+    }
 }
 
 thread_local! {
     static METADATA: RefCell<Metadata> = RefCell::new(Metadata::default());
+}
+
+pub fn export_stable_storage() -> (Metadata, ) {
+    (METADATA.with(|d| d.take()), )
+}
+
+pub fn import_stable_storage(metadata: Metadata) {
+    METADATA.with(|d| d.replace(metadata));
+}
+
+pub fn init_metadata(metadata: Metadata) {
+    METADATA.with(|d| d.replace(metadata));
+}
+
+pub fn get_underlying_token() -> Principal {
+    METADATA.with(|d| d.borrow().underlying_token)
 }
 
 #[query(name = "getLogo")]

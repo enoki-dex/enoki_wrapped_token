@@ -1,11 +1,14 @@
 type Metadata = record {
+  underlying_token : principal;
   decimals : nat8;
   logo : text;
   name : text;
   symbol : text;
 };
-type Result = variant { Ok : Stats; Err : TxError };
-type Result_1 = variant { Ok : nat; Err : TxError };
+type Result = variant { Ok; Err : TxError };
+type Result_1 = variant { Ok : principal; Err : TxError };
+type Result_2 = variant { Ok : Stats; Err : TxError };
+type Result_3 = variant { Ok : nat; Err : TxError };
 type Stats = record {
   fee : nat;
   deploy_time : nat64;
@@ -14,25 +17,30 @@ type Stats = record {
   total_supply : nat;
 };
 type TxError = variant {
+  UnderlyingTransferFailure;
   TransferCallbackError : text;
   InsufficientBalance;
   TransferValueTooSmall;
   Unauthorized;
   AccountDoesNotExist;
+  ShardDoesNotExist;
   AccountAlreadyExists;
   Other : text;
 };
-service : (text, text, text, nat8, principal, nat) -> {
+service : (principal, text, text, text, nat8, principal, nat) -> {
+  addShard : (principal) -> (Result);
   balanceOf : (principal) -> (nat) query;
+  completeRegistration : (principal) -> (Result);
   decimals : () -> (nat8) query;
   getLogo : () -> (text) query;
   getMetadata : () -> (Metadata) query;
   name : () -> (text) query;
   owner : () -> (principal) query;
-  setFee : (nat) -> ();
-  setLogo : (text) -> ();
-  setOwner : (principal) -> ();
-  stats : () -> (Result) query;
+  setFee : (nat) -> (Result);
+  setLogo : (text) -> (Result);
+  setOwner : (principal) -> (Result);
+  startRegistration : () -> (Result_1);
+  stats : () -> (Result_2) query;
   symbol : () -> (text) query;
-  totalSupply : () -> (Result_1) query;
+  totalSupply : () -> (Result_3) query;
 }

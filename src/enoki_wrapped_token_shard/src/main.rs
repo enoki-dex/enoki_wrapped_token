@@ -1,7 +1,9 @@
-use candid::{candid_method, Func, Principal, types::number::Nat};
+#[allow(unused_imports)]
+use candid::{candid_method, Nat, Principal};
 use ic_cdk_macros::*;
 
-use enoki_wrapped_token_shared::types::Result;
+#[allow(unused_imports)]
+use enoki_wrapped_token_shared::types::{NotifyArgs, Result};
 
 use crate::management::ManagerContractData;
 
@@ -10,17 +12,19 @@ mod fees;
 mod interfaces;
 mod management;
 mod mint;
-mod upgrade;
 mod stable;
+mod upgrade;
 
 #[init]
 #[candid_method(init)]
-fn init(owner: Principal, manager_contract: Principal, underlying_token: Principal, fee: Nat) {
+fn init(owner: Principal, manager_contract: Principal, underlying_token: Principal) {
     management::init_manager_data(ManagerContractData {
         owner,
         manager_contract,
-        fee,
+        fee: Default::default(),
         underlying_token,
+        sibling_shards: Default::default(),
+        deploy_time: ic_cdk::api::time(),
     });
 }
 

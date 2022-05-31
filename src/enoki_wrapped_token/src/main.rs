@@ -1,22 +1,28 @@
 use std::string::String;
 
-use candid::{candid_method, CandidType, Deserialize, Principal, types::number::Nat};
+use candid::{candid_method, Principal, types::number::Nat};
 use ic_cdk_macros::*;
 
+#[allow(unused_imports)]
 use enoki_wrapped_token_shared::types::Result;
 
-use crate::management::Stats;
-use crate::metadata::Metadata;
+#[allow(unused_imports)]
+use crate::management::{init_management_data, Stats};
+use crate::metadata::{init_metadata, Metadata};
+use crate::types::ManagementStats;
 
 mod metadata;
 mod shards;
 mod management;
 mod upgrade;
 mod types;
+mod accounts;
+mod stable;
 
 #[init]
 #[candid_method(init)]
 fn init(
+    underlying_token: Principal,
     logo: String,
     name: String,
     symbol: String,
@@ -24,7 +30,18 @@ fn init(
     owner: Principal,
     fee: Nat,
 ) {
-    todo!()
+    init_metadata(Metadata {
+        logo,
+        name,
+        symbol,
+        decimals,
+        underlying_token,
+    });
+    init_management_data(ManagementStats {
+        owner,
+        fee,
+        deploy_time: ic_cdk::api::time(),
+    });
 }
 
 #[cfg(any(target_arch = "wasm32", test))]

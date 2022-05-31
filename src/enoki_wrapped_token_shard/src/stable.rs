@@ -1,26 +1,14 @@
-use std::cell::RefCell;
-use std::collections::HashMap;
-use std::ops::{AddAssign, Sub, SubAssign};
+use std::collections::HashSet;
 
-use candid::{candid_method, CandidType, Func, Principal, types::number::Nat};
-use ic_cdk_macros::*;
+use candid::{CandidType, Principal};
 use serde::{Deserialize, Serialize};
 
-use enoki_wrapped_token_shared::types::*;
-
-use crate::balances::{EscrowBalances, ShardBalances};
-use crate::fees::{accept_fee, FeeBalance};
-use crate::management::{assert_is_manager_contract, get_fee};
+use crate::balances::ShardBalances;
+use crate::fees::FeeBalance;
 use crate::ManagerContractData;
 
 #[derive(CandidType, Clone, Deserialize, Serialize)]
 pub struct StableShardBalances(Vec<(Principal, String)>);
-
-#[derive(CandidType, Clone, Deserialize, Serialize)]
-pub struct StableEscrowBalances {
-    last_id: u64,
-    deposits: Vec<(u64, String)>,
-}
 
 #[derive(CandidType, Clone, Deserialize, Serialize)]
 pub struct StableFeeBalance(String);
@@ -31,6 +19,8 @@ pub struct StableManagerContractData {
     pub manager_contract: Principal,
     pub fee: String,
     pub underlying_token: Principal,
+    pub sibling_shards: HashSet<Principal>,
+    pub deploy_time: u64,
 }
 
 impl From<StableShardBalances> for ShardBalances {
@@ -54,32 +44,6 @@ impl From<ShardBalances> for StableShardBalances {
     }
 }
 
-impl From<StableEscrowBalances> for EscrowBalances {
-    fn from(balances: StableEscrowBalances) -> Self {
-        Self {
-            last_id: balances.last_id,
-            deposits: balances
-                .deposits
-                .into_iter()
-                .map(|(id, amount)| (id, amount.parse().unwrap()))
-                .collect(),
-        }
-    }
-}
-
-impl From<EscrowBalances> for StableEscrowBalances {
-    fn from(balances: EscrowBalances) -> Self {
-        Self {
-            last_id: balances.last_id,
-            deposits: balances
-                .deposits
-                .into_iter()
-                .map(|(id, amount)| (id, amount.to_string()))
-                .collect(),
-        }
-    }
-}
-
 impl From<StableFeeBalance> for FeeBalance {
     fn from(balance: StableFeeBalance) -> Self {
         Self(balance.0.parse().unwrap())
@@ -99,6 +63,8 @@ impl From<StableManagerContractData> for ManagerContractData {
             manager_contract: data.manager_contract,
             fee: data.fee.parse().unwrap(),
             underlying_token: data.underlying_token,
+            sibling_shards: data.sibling_shards,
+            deploy_time: data.deploy_time,
         }
     }
 }
@@ -110,6 +76,8 @@ impl From<ManagerContractData> for StableManagerContractData {
             manager_contract: data.manager_contract,
             fee: data.fee.to_string(),
             underlying_token: data.underlying_token,
+            sibling_shards: data.sibling_shards,
+            deploy_time: data.deploy_time,
         }
     }
 }

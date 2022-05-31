@@ -1,5 +1,4 @@
-use candid::{candid_method, CandidType, Deserialize, Principal, types::number::Nat};
-use ic_cdk_macros::*;
+use candid::{CandidType, Deserialize, Principal, types::number::Nat};
 
 #[derive(Deserialize, CandidType, Clone, Debug)]
 pub struct ManagementStats {

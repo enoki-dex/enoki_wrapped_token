@@ -1,12 +1,13 @@
 use std::string::String;
 
-use candid::{CandidType, Deserialize, Principal};
+use candid::{CandidType, Deserialize, Func};
 use ic_cdk::api::call::RejectionCode;
 
 #[derive(CandidType, Debug, Deserialize)]
 pub enum TxError {
     InsufficientBalance,
     Unauthorized,
+    ShardDoesNotExist,
     AccountDoesNotExist,
     AccountAlreadyExists,
     TransferValueTooSmall,
@@ -23,7 +24,8 @@ impl From<(RejectionCode, String)> for TxError {
 
 pub type Result<T> = std::result::Result<T, TxError>;
 
-pub struct UserAccount {
-    pub main_account: Principal,
-    pub shard_account: Option<Principal>,
+#[derive(CandidType, Debug, Deserialize)]
+pub struct NotifyArgs {
+    pub notify_func: Func,
+    pub deposit_id: u64,
 }

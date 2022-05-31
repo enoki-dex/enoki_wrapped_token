@@ -2,54 +2,28 @@ use std::cell::RefCell;
 use std::collections::HashMap;
 use std::ops::{AddAssign, Sub, SubAssign};
 
-use candid::{candid_method, CandidType, Deserialize, Func, Principal, types::number::Nat};
+use candid::{candid_method, types::number::Nat, Principal};
 use ic_cdk_macros::*;
 
 use enoki_wrapped_token_shared::types::*;
 
 use crate::fees::accept_fee;
-use crate::management::{assert_is_manager_contract, get_fee};
-use crate::stable::{StableEscrowBalances, StableShardBalances};
+use crate::management::{assert_is_manager_contract, assert_is_sibling, get_fee};
+use crate::stable::StableShardBalances;
 
 pub type ShardBalances = HashMap<Principal, Nat>;
 
-#[derive(Deserialize, CandidType, Clone, Debug, Default)]
-pub struct EscrowBalances {
-    pub last_id: u64,
-    pub deposits: HashMap<u64, Nat>,
-}
-
-impl EscrowBalances {
-    pub(crate) fn deposit(&mut self, amount: Nat) -> u64 {
-        let id = self.last_id;
-        self.last_id += 1;
-        self.deposits.insert(id, amount);
-        id
-    }
-    pub(crate) fn withdraw(&mut self, id: u64) -> Result<Nat> {
-        self.deposits.remove(&id).ok_or(TxError::Other(
-            "Error with EscrowBalances: cannot find id".to_string(),
-        ))
-    }
-}
-
 thread_local! {
     static SHARD_BALANCES: RefCell<ShardBalances> = RefCell::new(ShardBalances::default());
-    static FUNDS_IN_ESCROW: RefCell<EscrowBalances> = RefCell::new(EscrowBalances::default());
 }
 
-pub fn export_stable_storage() -> (StableShardBalances, StableEscrowBalances) {
+pub fn export_stable_storage() -> (StableShardBalances,) {
     let shard_balances: StableShardBalances = SHARD_BALANCES.with(|b| b.take()).into();
-    let escrow_balances: StableEscrowBalances = FUNDS_IN_ESCROW.with(|b| b.take()).into();
-    (shard_balances, escrow_balances)
+    (shard_balances,)
 }
 
-pub fn import_stable_storage(
-    shard_balances: StableShardBalances,
-    escrow_balances: StableEscrowBalances,
-) {
+pub fn import_stable_storage(shard_balances: StableShardBalances) {
     SHARD_BALANCES.with(|b| b.replace(shard_balances.into()));
-    FUNDS_IN_ESCROW.with(|b| b.replace(escrow_balances.into()));
 }
 
 pub fn assert_is_customer(user: &Principal) -> Result<()> {
@@ -61,7 +35,7 @@ pub fn assert_is_customer(user: &Principal) -> Result<()> {
 }
 
 #[update(name = "createAccount")]
-#[candid_method(update)]
+#[candid_method(update, rename = "createAccount")]
 pub fn create_account(account: Principal) -> Result<()> {
     assert_is_manager_contract()?;
     SHARD_BALANCES.with(|b| {
@@ -95,9 +69,17 @@ pub fn decrease_balance(account: Principal, amount: Nat) -> Result<()> {
     })
 }
 
-fn pre_transfer_check(from: Principal, to: Principal, value: &Nat, fee: &Nat) -> Result<()> {
+fn pre_transfer_check(
+    from: Principal,
+    shard_id: Principal,
+    to: Principal,
+    value: &Nat,
+    fee: &Nat,
+) -> Result<()> {
     assert_is_customer(&from)?;
-    assert_is_customer(&to)?;
+    if shard_id == ic_cdk::id() {
+        assert_is_customer(&to)?;
+    }
     if value <= fee {
         return Err(TxError::TransferValueTooSmall);
     }
@@ -116,7 +98,7 @@ fn pre_transfer_check(from: Principal, to: Principal, value: &Nat, fee: &Nat) ->
 fn charge_fee(user: Principal, fee: Nat) -> Result<()> {
     SHARD_BALANCES.with(|b| {
         let mut balances = b.borrow_mut();
-        let mut balance = balances.entry(user).or_default();
+        let balance = balances.entry(user).or_default();
         if *balance < fee {
             return Err(TxError::InsufficientBalance);
         }
@@ -127,70 +109,141 @@ fn charge_fee(user: Principal, fee: Nat) -> Result<()> {
     Ok(())
 }
 
+async fn transfer_to_sibling_shard(shard_id: Principal, to: Principal, amount: Nat) -> Result<()> {
+    assert_is_sibling(&shard_id)?;
+    ic_cdk::call(shard_id, "shardReceiveTransfer", (to, amount))
+        .await
+        .map_err(|err| err.into())
+}
+
+async fn transfer_and_call_to_sibling_shard(
+    shard_id: Principal,
+    to: Principal,
+    amount: Nat,
+    notify: NotifyArgs,
+) -> Result<()> {
+    assert_is_sibling(&shard_id)?;
+    ic_cdk::call(
+        shard_id,
+        "shardReceiveTransferAndCall",
+        (to, amount, notify),
+    )
+    .await
+    .map_err(|err| err.into())
+}
+
+#[update(name = "shardReceiveTransfer")]
+#[candid_method(update, rename = "shardReceiveTransfer")]
+async fn receive_transfer(to: Principal, value: Nat) -> Result<()> {
+    assert_is_sibling(&ic_cdk::caller())?;
+    assert_is_customer(&to)?;
+    increase_balance(to, value);
+
+    Ok(())
+}
+
+#[update(name = "shardReceiveTransferAndCall")]
+#[candid_method(update, rename = "shardReceiveTransferAndCall")]
+async fn receive_transfer_and_call(to: Principal, value: Nat, notify: NotifyArgs) -> Result<()> {
+    assert_is_sibling(&ic_cdk::caller())?;
+    assert_is_customer(&to)?;
+
+    // notify recipient
+    let result: std::result::Result<((),), _> = ic_cdk::call(
+        notify.notify_func.principal,
+        &notify.notify_func.method,
+        (notify.deposit_id, value.clone()),
+    )
+    .await;
+    match result {
+        Ok(_) => {
+            // send funds to destination
+            increase_balance(to, value);
+            Ok(())
+        }
+        Err(error) => Err(error.into()),
+    }
+}
+
 #[update(name = "shardTransfer")]
 #[candid_method(update, rename = "shardTransfer")]
-fn transfer(to: Principal, value: Nat) -> Result<()> {
+async fn transfer(shard_id: Principal, to: Principal, value: Nat) -> Result<()> {
     let from = ic_cdk::caller();
     let fee = get_fee();
-    pre_transfer_check(from, to, &value, &fee)?;
+    pre_transfer_check(from, shard_id, to, &value, &fee)?;
     charge_fee(from, fee.clone())?;
     let value = value.sub(fee);
 
-    SHARD_BALANCES.with(|b| {
-        let mut balances = b.borrow_mut();
-        let mut from_balance = balances.entry(from).or_default();
-        from_balance.sub_assign(value.clone());
-        let mut to_balance = balances.entry(from).or_default();
-        to_balance.add_assign(value.clone());
-    });
+    decrease_balance(from, value.clone())?;
+
+    if shard_id == ic_cdk::id() {
+        increase_balance(to, value.clone());
+    } else {
+        if let Err(error) = transfer_to_sibling_shard(shard_id, to, value.clone()).await {
+            increase_balance(from, value);
+            return Err(error.into());
+        }
+    }
+
     Ok(())
 }
 
 #[update(name = "shardTransferAndCall")]
 #[candid_method(update, rename = "shardTransferAndCall")]
-async fn transfer_and_call(to: Principal, value: Nat, notify: Func) -> Result<()> {
+async fn transfer_and_call(
+    shard_id: Principal,
+    to: Principal,
+    value: Nat,
+    notify: NotifyArgs,
+) -> Result<()> {
     let from = ic_cdk::caller();
     let fee = get_fee();
-    pre_transfer_check(from, to, &value, &fee)?;
+    pre_transfer_check(from, shard_id, to, &value, &fee)?;
     charge_fee(from, fee.clone())?;
     let value = value.sub(fee);
 
-    // put the funds in escrow
-    let escrow_id = SHARD_BALANCES.with(|b| {
-        let mut balances = b.borrow_mut();
-        let mut from_balance = balances.entry(from).or_default();
-        from_balance.sub_assign(value.clone());
-        FUNDS_IN_ESCROW.with(|f| f.borrow_mut().deposit(value.clone()))
-    });
+    decrease_balance(from, value.clone())?;
 
-    let send_funds_in_escrow = |destination: Principal| -> Result<()> {
-        FUNDS_IN_ESCROW.with(|f| {
-            f.borrow_mut().withdraw(escrow_id).map(|funds| {
-                SHARD_BALANCES.with(|b| {
-                    let mut balances = b.borrow_mut();
-                    let mut dest_balance = balances.entry(destination).or_default();
-                    dest_balance.add_assign(funds);
-                })
-            })
+    let result = if shard_id == ic_cdk::id() {
+        let result: Result<()> = ic_cdk::call(
+            notify.notify_func.principal,
+            &notify.notify_func.method,
+            (notify.deposit_id, value.clone()),
+        )
+        .await
+        .map_err(|err| err.into());
+        result.map(|_| {
+            // send funds to destination
+            increase_balance(to, value.clone());
         })
+    } else {
+        transfer_and_call_to_sibling_shard(shard_id, to, value.clone(), notify).await
     };
 
-    // notify recipient
-    // problem with this approach: the destination smart contract can only acknowledge receipt
-    // but CANNOT immediately transfer the received funds because they are still in escrow.
-    // This is not a problem for a DEX, but it might be a problem for other applications.
-    let result: std::result::Result<((), ), _> =
-        ic_cdk::call(notify.principal, &notify.method, (from, value)).await;
-    match result {
-        Ok(_) => {
-            // send funds in escrow to destination
-            send_funds_in_escrow(to)?;
-            Ok(())
-        }
-        Err((rejection_code, details)) => {
-            // revert transaction
-            send_funds_in_escrow(from)?;
-            Err((rejection_code, details).into())
-        }
+    if result.is_err() {
+        // revert transaction
+        increase_balance(from, value);
+        return result;
     }
+
+    Ok(())
+}
+
+#[query(name = "shardGetSupply")]
+#[candid_method(query, rename = "shardGetSupply")]
+fn shard_get_supply() -> Nat {
+    SHARD_BALANCES.with(|b| {
+        b.borrow()
+            .values()
+            .cloned()
+            .fold(Nat::from(0), |sum, next| sum + next)
+    })
+}
+
+#[query(name = "shardBalanceOf")]
+#[candid_method(query, rename = "shardBalanceOf")]
+fn balance_of(account: Principal) -> Result<Nat> {
+    SHARD_BALANCES
+        .with(|b| b.borrow().get(&account).cloned())
+        .ok_or(TxError::AccountDoesNotExist)
 }

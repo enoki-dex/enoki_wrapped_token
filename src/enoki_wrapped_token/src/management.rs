@@ -1,16 +1,25 @@
-use std::borrow::BorrowMut;
 use std::cell::RefCell;
 
-use candid::{candid_method, types::number::Nat, CandidType, Deserialize, Principal};
+use candid::{candid_method, CandidType, Deserialize, Principal, types::number::Nat};
 use ic_cdk_macros::*;
 
 use enoki_wrapped_token_shared::types::*;
 
-use crate::shards::total_supply;
+use crate::shards::{total_supply, update_fee};
+use crate::stable::StableManagementStats;
 use crate::types::ManagementStats;
 
 thread_local! {
     static MANAGEMENT_STATS: RefCell<ManagementStats> = RefCell::new(ManagementStats::default());
+}
+
+pub fn export_stable_storage() -> (StableManagementStats, ) {
+    let management_stats = MANAGEMENT_STATS.with(|s| s.take()).into();
+    (management_stats, )
+}
+
+pub fn import_stable_storage(management_stats: StableManagementStats) {
+    MANAGEMENT_STATS.with(|s| s.replace(management_stats.into()));
 }
 
 #[derive(Deserialize, CandidType, Clone, Debug)]
@@ -42,6 +51,10 @@ pub fn assert_is_owner() -> Result<()> {
     }
 }
 
+pub fn init_management_data(stats: ManagementStats) {
+    MANAGEMENT_STATS.with(|s| s.replace(stats));
+}
+
 #[query(name = "stats")]
 #[candid_method(query)]
 async fn stats() -> Result<Stats> {
@@ -59,9 +72,10 @@ fn owner() -> Principal {
 
 #[update(name = "setFee")]
 #[candid_method(update, rename = "setFee")]
-fn set_fee(fee: Nat) -> Result<()> {
+async fn set_fee(fee: Nat) -> Result<()> {
     assert_is_owner()?;
-    MANAGEMENT_STATS.with(|s| s.borrow_mut().fee = fee);
+    MANAGEMENT_STATS.with(|s| s.borrow_mut().fee = fee.clone());
+    update_fee(fee).await?;
     Ok(())
 }
 
