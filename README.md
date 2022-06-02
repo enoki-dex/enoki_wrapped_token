@@ -28,6 +28,7 @@ rustup target add wasm32-unknown-unknown
 ## Local Deploy
 
 ```bash
+make deps
 make install
 ```
 

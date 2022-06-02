@@ -1,7 +1,8 @@
 use std::cell::RefCell;
 use std::ops::AddAssign;
 
-use candid::{CandidType, Deserialize, types::number::Nat};
+use candid::{candid_method, CandidType, Deserialize, types::number::Nat};
+use ic_cdk_macros::*;
 
 use crate::stable::StableFeeBalance;
 
@@ -23,4 +24,10 @@ pub fn export_stable_storage() -> (StableFeeBalance, ) {
 
 pub fn import_stable_storage(fee_balance: StableFeeBalance) {
     ACCRUED_FEES.with(|b| b.replace(fee_balance.into()));
+}
+
+#[query(name = "getAccruedFees")]
+#[candid_method(query, rename = "getAccruedFees")]
+pub fn get_accrued_fees() -> Nat {
+    ACCRUED_FEES.with(|d| d.borrow().0.clone())
 }

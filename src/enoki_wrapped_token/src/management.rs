@@ -79,6 +79,10 @@ async fn set_fee(fee: Nat) -> Result<()> {
     Ok(())
 }
 
+pub fn get_fee() -> Nat {
+    MANAGEMENT_STATS.with(|s| s.borrow().fee.clone())
+}
+
 #[update(name = "setOwner")]
 #[candid_method(update, rename = "setOwner")]
 fn set_owner(owner: Principal) -> Result<()> {

@@ -7,7 +7,7 @@ use serde::{Deserialize, Serialize};
 
 use enoki_wrapped_token_shared::types::*;
 
-use crate::shards::get_lowest_utilization_shard;
+use crate::shards::{get_lowest_utilization_shard, update_shard_accounts};
 
 #[derive(Serialize, Deserialize, CandidType, Clone, Debug)]
 pub struct UserAccount {
@@ -46,6 +46,7 @@ async fn start_registration() -> Result<Principal> {
         shard_id: assigned_shard,
     };
     USER_ACCOUNTS.with(|a| a.borrow_mut().insert(caller, new_user));
+    update_shard_accounts(assigned_shard, |count| *count += 1);
 
     Ok(assigned_shard)
 }
@@ -81,4 +82,20 @@ async fn complete_registration(shard_account: Principal) -> Result<()> {
         .with(|a| a.borrow_mut().get_mut(&caller).unwrap().shard_account = Some(shard_account));
 
     Ok(())
+}
+
+#[query(name = "getAssignedShardId")]
+#[candid_method(query, rename = "getAssignedShardId")]
+fn get_assigned_shard_id() -> Result<Principal> {
+    USER_ACCOUNTS.with(|a| {
+        if let Some(UserAccount {
+                        shard_account: Some(account),
+                        ..
+                    }) = a.borrow().get(&ic_cdk::caller())
+        {
+            Ok(*account)
+        } else {
+            Err(TxError::AccountDoesNotExist)
+        }
+    })
 }

@@ -65,6 +65,12 @@ thread_local! {
     static MANAGER_CONTRACT_DATA: RefCell<ManagerContractData> = RefCell::new(ManagerContractData::default());
 }
 
+#[query(name = "whoAmI")]
+#[candid_method(query, rename = "whoAmI")]
+fn who_am_i() -> Principal {
+    ic_cdk::caller()
+}
+
 #[query(name = "getManagementDetails")]
 #[candid_method(query, rename = "getManagementDetails")]
 fn get_management_details() -> ManagerContractData {
@@ -107,7 +113,7 @@ fn set_fee(new_fee: Nat) -> Result<()> {
 
 #[update(name = "initShard")]
 #[candid_method(update, rename = "initShard")]
-fn init_shard(underlying_token: Principal, sibling_shards: Vec<Principal>) -> Result<()> {
+fn init_shard(underlying_token: Principal, sibling_shards: Vec<Principal>, fee: Nat) -> Result<()> {
     MANAGER_CONTRACT_DATA.with(|d| {
         let mut data = d.borrow_mut();
         if ic_cdk::caller() == data.manager_contract {
@@ -117,6 +123,7 @@ fn init_shard(underlying_token: Principal, sibling_shards: Vec<Principal>) -> Re
             for shard in sibling_shards {
                 data.sibling_shards.insert(shard);
             }
+            data.fee = fee;
             Ok(())
         } else {
             Err(TxError::Unauthorized)

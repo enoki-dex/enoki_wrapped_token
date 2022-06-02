@@ -1,0 +1,12 @@
+[package]
+name = "mock_exchange"
+version = "0.1.0"
+edition = "2018"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+enoki_wrapped_token_shared = { path = "../../src/enoki_wrapped_token_shared" }
+candid = "0.7.4"
+ic-cdk = "0.4"
+ic-cdk-macros = "0.4"

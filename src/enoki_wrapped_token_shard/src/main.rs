@@ -3,7 +3,7 @@ use candid::{candid_method, Nat, Principal};
 use ic_cdk_macros::*;
 
 #[allow(unused_imports)]
-use enoki_wrapped_token_shared::types::{NotifyArgs, Result};
+use enoki_wrapped_token_shared::types::Result;
 
 use crate::management::ManagerContractData;
 

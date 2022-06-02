@@ -1,13 +1,13 @@
 use std::cell::RefCell;
 use std::collections::HashMap;
-use std::ops::{AddAssign, Sub, SubAssign};
+use std::ops::{AddAssign, SubAssign};
 
-use candid::{candid_method, types::number::Nat, Principal};
+use candid::{candid_method, Principal, types::number::Nat};
 use ic_cdk_macros::*;
 
 use enoki_wrapped_token_shared::types::*;
 
-use crate::fees::accept_fee;
+use crate::fees::{accept_fee, get_accrued_fees};
 use crate::management::{assert_is_manager_contract, assert_is_sibling, get_fee};
 use crate::stable::StableShardBalances;
 
@@ -17,9 +17,9 @@ thread_local! {
     static SHARD_BALANCES: RefCell<ShardBalances> = RefCell::new(ShardBalances::default());
 }
 
-pub fn export_stable_storage() -> (StableShardBalances,) {
+pub fn export_stable_storage() -> (StableShardBalances, ) {
     let shard_balances: StableShardBalances = SHARD_BALANCES.with(|b| b.take()).into();
-    (shard_balances,)
+    (shard_balances, )
 }
 
 pub fn import_stable_storage(shard_balances: StableShardBalances) {
@@ -76,8 +76,9 @@ fn pre_transfer_check(
     value: &Nat,
     fee: &Nat,
 ) -> Result<()> {
+    let check_to = shard_id == ic_cdk::id();
     assert_is_customer(&from)?;
-    if shard_id == ic_cdk::id() {
+    if check_to {
         assert_is_customer(&to)?;
     }
     if value <= fee {
@@ -87,7 +88,7 @@ fn pre_transfer_check(
     SHARD_BALANCES.with(|b| {
         if b.borrow().get(&from).unwrap_or(&Nat::from(0)) < value {
             Err(TxError::InsufficientBalance)
-        } else if !b.borrow().contains_key(&to) {
+        } else if check_to && !b.borrow().contains_key(&to) {
             Err(TxError::AccountDoesNotExist)
         } else {
             Ok(())
@@ -120,16 +121,24 @@ async fn transfer_and_call_to_sibling_shard(
     shard_id: Principal,
     to: Principal,
     amount: Nat,
-    notify: NotifyArgs,
+    notify_principal: Principal,
+    notify_method: String,
+    notify_transfer_id: u64,
 ) -> Result<()> {
     assert_is_sibling(&shard_id)?;
     ic_cdk::call(
         shard_id,
         "shardReceiveTransferAndCall",
-        (to, amount, notify),
+        (
+            to,
+            amount,
+            notify_principal,
+            notify_method,
+            notify_transfer_id,
+        ),
     )
-    .await
-    .map_err(|err| err.into())
+        .await
+        .map_err(|err| err.into())
 }
 
 #[update(name = "shardReceiveTransfer")]
@@ -144,17 +153,23 @@ async fn receive_transfer(to: Principal, value: Nat) -> Result<()> {
 
 #[update(name = "shardReceiveTransferAndCall")]
 #[candid_method(update, rename = "shardReceiveTransferAndCall")]
-async fn receive_transfer_and_call(to: Principal, value: Nat, notify: NotifyArgs) -> Result<()> {
+async fn receive_transfer_and_call(
+    to: Principal,
+    value: Nat,
+    notify_principal: Principal,
+    notify_method: String,
+    notify_transfer_id: u64,
+) -> Result<()> {
     assert_is_sibling(&ic_cdk::caller())?;
     assert_is_customer(&to)?;
 
     // notify recipient
-    let result: std::result::Result<((),), _> = ic_cdk::call(
-        notify.notify_func.principal,
-        &notify.notify_func.method,
-        (notify.deposit_id, value.clone()),
+    let result: std::result::Result<((), ), _> = ic_cdk::call(
+        notify_principal,
+        &notify_method,
+        (notify_transfer_id, to, value.clone()),
     )
-    .await;
+        .await;
     match result {
         Ok(_) => {
             // send funds to destination
@@ -172,7 +187,7 @@ async fn transfer(shard_id: Principal, to: Principal, value: Nat) -> Result<()> 
     let fee = get_fee();
     pre_transfer_check(from, shard_id, to, &value, &fee)?;
     charge_fee(from, fee.clone())?;
-    let value = value.sub(fee);
+    let value = value - fee;
 
     decrease_balance(from, value.clone())?;
 
@@ -194,30 +209,40 @@ async fn transfer_and_call(
     shard_id: Principal,
     to: Principal,
     value: Nat,
-    notify: NotifyArgs,
+    notify_principal: Principal,
+    notify_method: String,
+    notify_transfer_id: u64,
 ) -> Result<()> {
     let from = ic_cdk::caller();
     let fee = get_fee();
     pre_transfer_check(from, shard_id, to, &value, &fee)?;
     charge_fee(from, fee.clone())?;
-    let value = value.sub(fee);
+    let value = value - fee;
 
     decrease_balance(from, value.clone())?;
 
     let result = if shard_id == ic_cdk::id() {
         let result: Result<()> = ic_cdk::call(
-            notify.notify_func.principal,
-            &notify.notify_func.method,
-            (notify.deposit_id, value.clone()),
+            notify_principal,
+            &notify_method,
+            (notify_transfer_id, to, value.clone()),
         )
-        .await
-        .map_err(|err| err.into());
+            .await
+            .map_err(|err| err.into());
         result.map(|_| {
             // send funds to destination
             increase_balance(to, value.clone());
         })
     } else {
-        transfer_and_call_to_sibling_shard(shard_id, to, value.clone(), notify).await
+        transfer_and_call_to_sibling_shard(
+            shard_id,
+            to,
+            value.clone(),
+            notify_principal,
+            notify_method,
+            notify_transfer_id,
+        )
+            .await
     };
 
     if result.is_err() {
@@ -237,7 +262,7 @@ fn shard_get_supply() -> Nat {
             .values()
             .cloned()
             .fold(Nat::from(0), |sum, next| sum + next)
-    })
+    }) + get_accrued_fees()
 }
 
 #[query(name = "shardBalanceOf")]

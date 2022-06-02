@@ -9,6 +9,8 @@ use enoki_wrapped_token_shared::types::Result;
 #[allow(unused_imports)]
 use crate::management::{init_management_data, Stats};
 use crate::metadata::{init_metadata, Metadata};
+#[allow(unused_imports)]
+use crate::shards::Shard;
 use crate::types::ManagementStats;
 
 mod metadata;

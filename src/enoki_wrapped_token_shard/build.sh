@@ -1,1 +1,1 @@
-cargo run > enoki_wrapped_token_shard.did
+cargo run --bin "enoki_wrapped_token_shard" > "$(dirname "$0")"/enoki_wrapped_token_shard.did

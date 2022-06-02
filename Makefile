@@ -1,11 +1,16 @@
-SHELL = /bin/bash
+SHELL = /bin/zsh
 
 .PHONY: all
 all: install
 
+.PHONY: deps
+.SILENT: deps
+deps: clean
+	./scripts/install_dependencies.sh
+
 .PHONY: install
 .SILENT: install
-install: clean
+install:
 	./scripts/install.sh
 
 
@@ -23,7 +28,7 @@ build:
 .PHONY: test
 .SILENT: test
 test:
-	./tests/sample_test.sh
+	./tests/test.sh
 
 .PHONY: clean
 .SILENT: clean

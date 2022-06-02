@@ -15,6 +15,9 @@ echo_e() {
     echo -e "$@"
   fi
 }
+info() {
+  echo_e "${BLUE}[info] ${NC}" "$@"
+}
 catch() {
   echo_e "${RED}ERROR${NC} at line $1" # "with code $2"
   if [ -n "$EXIT_IF_ERROR" ]; then

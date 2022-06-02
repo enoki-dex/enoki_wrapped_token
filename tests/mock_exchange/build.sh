@@ -1,0 +1,1 @@
+cargo run --bin "mock_exchange" > "$(dirname "$0")"/mock_exchange.did
