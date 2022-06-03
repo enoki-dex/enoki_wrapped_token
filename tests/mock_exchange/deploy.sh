@@ -4,5 +4,5 @@ dfx build mock_exchange
 TOKEN_ID="principal \"$( \
    dfx canister id enoki_wrapped_token
 )\""
-dfx canister install mock_exchange --argument "($TOKEN_ID)" -m=reinstall
+yes yes | dfx canister install mock_exchange --argument "($TOKEN_ID)" -m=reinstall
 dfx canister call mock_exchange initialize

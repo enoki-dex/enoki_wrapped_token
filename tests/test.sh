@@ -22,13 +22,9 @@ end
 
 start "setting up user1 on enoki_wrapped_token"
 dfx identity use user1
-dfx canister call enoki_wrapped_token startRegistration
+dfx canister call enoki_wrapped_token register "(principal \"$USER1\")"
 ASSIGNED_SHARD="r7inp-6aaaa-aaaaa-aaabq-cai"
 info "user1 assigned to: $ASSIGNED_SHARD"
-dfx canister call "$ASSIGNED_SHARD" whoami
-USER1_SHARD="qse5k-i66mj-zwzlh-apfgl-ufkk4-jtmqw-gpvhd-x7z2p-x2t36-ffzln-vae"
-info "user1_shard: $USER1_SHARD"
-dfx canister call enoki_wrapped_token completeRegistration "(principal \"$USER1_SHARD\")"
 dfx canister call xtc_token approve "(principal \"$ASSIGNED_SHARD\", 12300000000)"
 info "wrapping original token"
 dfx canister call "$ASSIGNED_SHARD" wrap "(12300000000)"
@@ -38,8 +34,9 @@ info "total supply of wrapped token: $(dfx canister call enoki_wrapped_token tot
 end
 
 start "deposit to exchange"
-dfx canister call mock_exchange startDeposit
-dfx canister call "$ASSIGNED_SHARD" shardTransferAndCall "(principal \"ryjl3-tyaaa-aaaaa-aaaba-cai\", principal \"renrk-eyaaa-aaaaa-aaada-cai\", 1220000000, principal \"renrk-eyaaa-aaaaa-aaada-cai\", \"completeDeposit\", 0: nat64)"
+dfx canister call mock_exchange getDepositShardId
+DEPOSIT_SHARD="ryjl3-tyaaa-aaaaa-aaaba-cai"
+dfx canister call "$ASSIGNED_SHARD" shardTransferAndCall "(principal \"$DEPOSIT_SHARD\", principal \"renrk-eyaaa-aaaaa-aaada-cai\", 1220000000, principal \"renrk-eyaaa-aaaaa-aaada-cai\", \"deposit\")"
 BALANCE=$(dfx canister call mock_exchange balance)
 info "user1 balance on exchange: $BALANCE"
 assert_eq "$BALANCE" "(1_219_980_000 : nat)"
@@ -50,7 +47,7 @@ end
 
 start "unwrap token"
 info "withdrawing from exchange"
-dfx canister call mock_exchange withdrawAll "(principal \"$ASSIGNED_SHARD\", principal \"$USER1_SHARD\")"
+dfx canister call mock_exchange withdrawAll "(principal \"$ASSIGNED_SHARD\", principal \"$USER1\")"
 info "user1 balance on exchange: $(dfx canister call mock_exchange balance)"
 info "user1 balance of wrapped token: $(dfx canister call enoki_wrapped_token balanceOf "(principal \"$USER1\")")"
 AMOUNT="11_079_999_580"

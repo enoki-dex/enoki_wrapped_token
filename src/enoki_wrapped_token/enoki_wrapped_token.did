@@ -31,21 +31,21 @@ type TxError = variant {
 service : (principal, text, text, text, nat8, principal, nat) -> {
   addShard : (principal) -> (Result);
   balanceOf : (principal) -> (nat) query;
-  completeRegistration : (principal) -> (Result);
   decimals : () -> (nat8) query;
   getAccruedFees : () -> (Result_1) query;
-  getAssignedShardId : () -> (Result_2) query;
+  getAssignedShardId : (principal) -> (Result_2) query;
   getLogo : () -> (text) query;
   getMetadata : () -> (Metadata) query;
   getShardIds : () -> (vec principal) query;
   getShardsInfo : () -> (vec Shard) query;
   name : () -> (text) query;
   owner : () -> (principal) query;
+  register : (principal) -> (Result_2);
   setFee : (nat) -> (Result);
   setLogo : (text) -> (Result);
   setOwner : (principal) -> (Result);
-  startRegistration : () -> (Result_2);
   stats : () -> (Result_3) query;
   symbol : () -> (text) query;
   totalSupply : () -> (Result_1) query;
+  transfer : (principal, nat) -> (Result);
 }

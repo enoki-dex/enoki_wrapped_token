@@ -27,6 +27,11 @@
       "candid": "src/enoki_wrapped_token_shard/enoki_wrapped_token_shard.did",
       "package": "enoki_wrapped_token_shard",
       "type": "rust"
+    },
+    "enoki_wrapped_token_shard_2": {
+      "candid": "src/enoki_wrapped_token_shard/enoki_wrapped_token_shard.did",
+      "package": "enoki_wrapped_token_shard",
+      "type": "rust"
     }
   },
   "defaults": {

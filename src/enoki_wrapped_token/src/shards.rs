@@ -71,12 +71,11 @@ async fn get_accrued_fees() -> Result<Nat> {
 #[candid_method(query, rename = "balanceOf")]
 async fn balance_of(id: Principal) -> Nat {
     if let Some(UserAccount {
-                    shard_account: Some(shard_account),
-                    shard_id,
+                    assigned_shard,
                 }) = get_user_account(&id)
     {
         let balance: Result<(Result<Nat>, )> =
-            ic_cdk::call(shard_id, "shardBalanceOf", (shard_account, ))
+            ic_cdk::call(assigned_shard, "shardBalanceOf", (id, ))
                 .await
                 .map_err(|err| err.into());
 
@@ -143,7 +142,7 @@ pub fn update_shard_accounts<TF: Fn(&mut u64)>(id: Principal, func: TF) {
     })
 }
 
-pub fn get_lowest_utilization_shard() -> Result<Principal> {
+pub fn get_lowest_utilization_shard() -> Principal {
     //TODO: choose by lowest transfer activity, not number of accounts
     SHARDS.with(|s| {
         s.borrow()
@@ -157,7 +156,7 @@ pub fn get_lowest_utilization_shard() -> Result<Principal> {
                 }
             })
             .map(|s| s.id)
-            .ok_or(TxError::ShardDoesNotExist)
+            .expect("no shards exist")
     })
 }
 

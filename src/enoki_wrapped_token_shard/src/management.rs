@@ -65,12 +65,6 @@ thread_local! {
     static MANAGER_CONTRACT_DATA: RefCell<ManagerContractData> = RefCell::new(ManagerContractData::default());
 }
 
-#[query(name = "whoami")]
-#[candid_method(query, rename = "whoami")]
-fn who_am_i() -> Principal {
-    ic_cdk::caller()
-}
-
 #[query(name = "getManagementDetails")]
 #[candid_method(query, rename = "getManagementDetails")]
 fn get_management_details() -> ManagerContractData {
