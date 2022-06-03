@@ -25,7 +25,7 @@ dfx identity use user1
 dfx canister call enoki_wrapped_token startRegistration
 ASSIGNED_SHARD="r7inp-6aaaa-aaaaa-aaabq-cai"
 info "user1 assigned to: $ASSIGNED_SHARD"
-dfx canister call "$ASSIGNED_SHARD" whoAmI
+dfx canister call "$ASSIGNED_SHARD" whoami
 USER1_SHARD="qse5k-i66mj-zwzlh-apfgl-ufkk4-jtmqw-gpvhd-x7z2p-x2t36-ffzln-vae"
 info "user1_shard: $USER1_SHARD"
 dfx canister call enoki_wrapped_token completeRegistration "(principal \"$USER1_SHARD\")"

@@ -65,8 +65,8 @@ thread_local! {
     static MANAGER_CONTRACT_DATA: RefCell<ManagerContractData> = RefCell::new(ManagerContractData::default());
 }
 
-#[query(name = "whoAmI")]
-#[candid_method(query, rename = "whoAmI")]
+#[query(name = "whoami")]
+#[candid_method(query, rename = "whoami")]
 fn who_am_i() -> Principal {
     ic_cdk::caller()
 }

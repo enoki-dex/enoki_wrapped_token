@@ -7,4 +7,4 @@ OWNER="principal \"$( \
 TOKEN_ID="principal \"$( \
    dfx canister id xtc_token
 )\""
-dfx canister install enoki_wrapped_token --argument "($TOKEN_ID, \"test logo\", \"enoki-boosed XTC\", \"eXTC\", 12:nat8, $OWNER, 20000)" -m=reinstall
+yes yes | dfx canister install enoki_wrapped_token --argument "($TOKEN_ID, \"test logo\", \"enoki-boosed XTC\", \"eXTC\", 12:nat8, $OWNER, 20000)" -m=reinstall

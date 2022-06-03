@@ -1,59 +1,50 @@
 type ManagerContractData = record {
-    fee : nat;
-    deploy_time : nat64;
-    underlying_token : principal;
-    owner : principal;
-    sibling_shards : vec principal;
-    manager_contract : principal;
+  fee : nat;
+  deploy_time : nat64;
+  underlying_token : principal;
+  owner : principal;
+  sibling_shards : vec principal;
+  manager_contract : principal;
 };
-
-type Result = variant {
-    Ok;
-    Err : TxError
-};
-
-type Result_1 = variant {
-    Ok : nat;
-    Err : TxError
-};
-
+type Result = variant { Ok; Err : TxError };
+type Result_1 = variant { Ok : nat; Err : TxError };
 type TxError = variant {
-    UnderlyingTransferFailure;
-    TransferCallbackError : text;
-    InsufficientBalance;
-    TransferValueTooSmall;
-    Unauthorized;
-    AccountDoesNotExist;
-    ShardDoesNotExist;
-    AccountAlreadyExists;
-    Other : text;
+  UnderlyingTransferFailure;
+  TransferCallbackError : text;
+  InsufficientBalance;
+  TransferValueTooSmall;
+  Unauthorized;
+  AccountDoesNotExist;
+  ShardDoesNotExist;
+  AccountAlreadyExists;
+  Other : text;
 };
 service : (principal, principal, principal) -> {
-    addSiblingShard : (principal) -> (Result);
-    createAccount : (principal) -> (Result);
-    getAccruedFees : () -> (nat) query;
-    getManagementDetails : () -> (ManagerContractData) query;
-    getOwner : () -> (principal) query;
-    initShard : (principal, vec principal, nat) -> (Result);
-    removeSiblingShard : (principal) -> (Result);
-    setFee : (nat) -> (Result);
-    setOwner : (principal) -> (Result);
-    shardBalanceOf : (principal) -> (Result_1) query;
-    shardGetSupply : () -> (nat) query;
-    shardReceiveTransfer : (principal, nat) -> (Result);
-    shardReceiveTransferAndCall : (principal, nat, principal, text, nat64) -> (
-    Result,
+  addSiblingShard : (principal) -> (Result);
+  createAccount : (principal) -> (Result);
+  getAccruedFees : () -> (nat) query;
+  getManagementDetails : () -> (ManagerContractData) query;
+  getOwner : () -> (principal) query;
+  initShard : (principal, vec principal, nat) -> (Result);
+  removeSiblingShard : (principal) -> (Result);
+  setFee : (nat) -> (Result);
+  setOwner : (principal) -> (Result);
+  shardBalanceOf : (principal) -> (Result_1) query;
+  shardGetSupply : () -> (nat) query;
+  shardReceiveTransfer : (principal, nat) -> (Result);
+  shardReceiveTransferAndCall : (principal, nat, principal, text, nat64) -> (
+      Result,
     );
-    shardTransfer : (principal, principal, nat) -> (Result);
-    shardTransferAndCall : (
-    principal,
-    principal,
-    nat,
-    principal,
-    text,
-    nat64,
+  shardTransfer : (principal, principal, nat) -> (Result);
+  shardTransferAndCall : (
+      principal,
+      principal,
+      nat,
+      principal,
+      text,
+      nat64,
     ) -> (Result);
-    unwrap : (nat, principal) -> (Result);
-    whoAmI : () -> (principal) query;
-    wrap : (nat) -> (Result);
+  unwrap : (nat, principal) -> (Result);
+  whoami : () -> (principal) query;
+  wrap : (nat) -> (Result);
 }
