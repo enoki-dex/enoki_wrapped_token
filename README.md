@@ -27,9 +27,14 @@ rustup target add wasm32-unknown-unknown
 
 ## Local Deploy
 
+to start:
 ```bash
-make deps
-make install
+make deps && make install
+```
+
+and to stop:
+```bash
+make clean
 ```
 
 [//]: # (The app's local URL should be displayed. When you log in, your principal will be displayed.)

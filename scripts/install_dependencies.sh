@@ -1,4 +1,3 @@
-dfx start --background --clean --host 127.0.0.1:8000
 dfx identity use default
 dfx canister create --all
 

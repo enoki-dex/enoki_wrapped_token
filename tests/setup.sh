@@ -4,6 +4,8 @@ BLUE='\033[0;36m'
 YELLOW='\033[0;33m'
 NC='\033[0m' # No Color
 
+REGEX_PRINCIPAL='(?:[a-z0-9]+\-[a-z0-9]+)+'
+
 trap 'catch "$LINENO" "$?"' ERR
 trap 'finish' EXIT
 #set -x

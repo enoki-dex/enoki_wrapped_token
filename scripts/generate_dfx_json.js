@@ -1,6 +1,6 @@
 const fs = require('fs');
 
-const number_of_shards = parseInt(process.env.NUM_SHARDS) || 1;
+const number_of_shards = parseInt(process.env.NUM_SHARDS) || 2;
 
 const config = JSON.parse('' + fs.readFileSync('./dfx.1.json'));
 const shard_config = config['canisters']['enoki_wrapped_token_shard_1'];

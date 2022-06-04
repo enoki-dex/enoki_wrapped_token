@@ -22,8 +22,7 @@ end
 
 start "setting up user1 on enoki_wrapped_token"
 dfx identity use user1
-dfx canister call enoki_wrapped_token register "(principal \"$USER1\")"
-ASSIGNED_SHARD="r7inp-6aaaa-aaaaa-aaabq-cai"
+ASSIGNED_SHARD=$(dfx canister call enoki_wrapped_token register "(principal \"$USER1\")" | grep -oE $REGEX_PRINCIPAL)
 info "user1 assigned to: $ASSIGNED_SHARD"
 dfx canister call xtc_token approve "(principal \"$ASSIGNED_SHARD\", 12300000000)"
 info "wrapping original token"
@@ -34,8 +33,7 @@ info "total supply of wrapped token: $(dfx canister call enoki_wrapped_token tot
 end
 
 start "deposit to exchange"
-dfx canister call mock_exchange getDepositShardId
-DEPOSIT_SHARD="ryjl3-tyaaa-aaaaa-aaaba-cai"
+DEPOSIT_SHARD=$(dfx canister call mock_exchange getDepositShardId | grep -oE $REGEX_PRINCIPAL)
 dfx canister call "$ASSIGNED_SHARD" shardTransferAndCall "(principal \"$DEPOSIT_SHARD\", principal \"renrk-eyaaa-aaaaa-aaada-cai\", 1220000000, principal \"renrk-eyaaa-aaaaa-aaada-cai\", \"deposit\")"
 BALANCE=$(dfx canister call mock_exchange balance)
 info "user1 balance on exchange: $BALANCE"

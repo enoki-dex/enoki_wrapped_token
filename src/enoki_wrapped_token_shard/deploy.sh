@@ -13,7 +13,7 @@ MANAGER_ID="principal \"$(
 )\""
 
 i=1
-num_shards=${NUM_SHARDS:-1}
+num_shards=${NUM_SHARDS:-2}
 while [ $i -le $num_shards ]; do
   yes yes | dfx canister install "enoki_wrapped_token_shard_$i" --argument "($OWNER, $MANAGER_ID, $TOKEN_ID)" -m=reinstall
   dfx canister call enoki_wrapped_token "addShard" "(principal \"$(dfx canister id "enoki_wrapped_token_shard_$i")\")"

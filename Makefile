@@ -1,18 +1,18 @@
 SHELL = /bin/zsh
 
 .PHONY: all
-all: install
+all: clean deps install test
 
 .PHONY: deps
 .SILENT: deps
-deps: clean
+deps:
+	dfx start --background
 	./scripts/install_dependencies.sh
 
 .PHONY: install
 .SILENT: install
 install:
 	./scripts/install.sh
-
 
 .PHONY: init-local
 .SILENT: init-local
