@@ -27,12 +27,21 @@ rustup target add wasm32-unknown-unknown
 
 ## Local Deploy
 
-to start:
+### Configure
+
+```bash
+cp default.env .env
+```
+If you make any changes to `.env`, please run:
+```bash
+make config
+```
+
+### Run
 ```bash
 make deps && make install
 ```
-
-and to stop:
+to stop and reset the local data:
 ```bash
 make clean
 ```
@@ -48,7 +57,7 @@ make clean
 
 [//]: # (```)
 
-## Local Testing
+### Test
 ```bash
 make test
 ```

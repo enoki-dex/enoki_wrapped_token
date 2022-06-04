@@ -19,6 +19,11 @@ install:
 init-local:
 	./scripts/initalize_local_balance.sh $(II_PRINCIPAL)
 
+.PHONY: config
+.SILENT: config
+config:
+	./scripts/update_dfx.sh
+
 .PHONY: build
 .SILENT: build
 build:

@@ -1,10 +1,5 @@
 {
   "canisters": {
-    "enoki_wrapped_token": {
-      "candid": "src/enoki_wrapped_token/enoki_wrapped_token.did",
-      "package": "enoki_wrapped_token",
-      "type": "rust"
-    },
     "ledger": {
       "type": "custom",
       "candid": "src_dev/ledger/ledger.did",
@@ -23,7 +18,22 @@
       "package": "mock_exchange",
       "type": "rust"
     },
+    "enoki_wrapped_token": {
+      "candid": "src/enoki_wrapped_token/enoki_wrapped_token.did",
+      "package": "enoki_wrapped_token",
+      "type": "rust"
+    },
     "enoki_wrapped_token_shard_1": {
+      "candid": "src/enoki_wrapped_token_shard/enoki_wrapped_token_shard.did",
+      "package": "enoki_wrapped_token_shard",
+      "type": "rust"
+    },
+    "enoki_wrapped_token_b": {
+      "candid": "src/enoki_wrapped_token/enoki_wrapped_token.did",
+      "package": "enoki_wrapped_token",
+      "type": "rust"
+    },
+    "enoki_wrapped_token_b_shard_1": {
       "candid": "src/enoki_wrapped_token_shard/enoki_wrapped_token_shard.did",
       "package": "enoki_wrapped_token_shard",
       "type": "rust"
