@@ -1,6 +1,6 @@
 use std::string::String;
 
-use candid::{CandidType, Deserialize};
+use candid::{CandidType, Deserialize, Principal, Nat};
 use ic_cdk::api::call::RejectionCode;
 
 #[derive(CandidType, Debug, Deserialize)]
@@ -24,8 +24,11 @@ impl From<(RejectionCode, String)> for TxError {
 
 pub type Result<T> = std::result::Result<T, TxError>;
 
-// #[derive(CandidType, Debug, Deserialize)]
-// pub struct NotifyArgs {
-//     pub notify_func: Func,
-//     pub deposit_id: u64,
-// }
+#[derive(CandidType, Debug, Deserialize)]
+pub struct ShardedTransferNotification {
+    pub from: Principal,
+    pub from_shard: Principal,
+    pub to: Principal,
+    pub value: Nat,
+    pub data: String
+}

@@ -1,4 +1,4 @@
-use candid::{candid_method, Principal, types::number::Nat};
+use candid::{candid_method, types::number::Nat, Principal};
 use ic_cdk_macros::*;
 
 use enoki_wrapped_token_shared::types::*;
@@ -7,6 +7,15 @@ use crate::balances::{decrease_balance, increase_balance};
 use crate::fees::accept_fee;
 use crate::interfaces::dip20::DIP20;
 use crate::management;
+
+// FOR TESTING ONLY
+#[update(name = "mint")]
+#[candid_method(update)]
+async fn mint(amount: Nat) {
+    let caller = ic_cdk::caller();
+    increase_balance(caller, amount);
+}
+// FOR TESTING ONLY
 
 #[update(name = "wrap")]
 #[candid_method(update)]

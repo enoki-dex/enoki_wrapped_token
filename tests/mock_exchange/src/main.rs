@@ -6,6 +6,8 @@ use std::ops::AddAssign;
 use candid::{candid_method, CandidType, Nat, Principal};
 use ic_cdk_macros::*;
 
+use enoki_wrapped_token_shared::types::ShardedTransferNotification;
+
 #[init]
 #[candid_method(init)]
 async fn init(token_accepted: Principal) {
@@ -67,15 +69,15 @@ fn get_deposit_shard_id() -> Principal {
 
 #[update(name = "deposit")]
 #[candid_method(update)]
-async fn deposit(from: Principal, to: Principal, value: Nat) {
+async fn deposit(notification: ShardedTransferNotification) {
     assert_from_token_shard(ic_cdk::caller()).await;
-    assert_eq!(to, ic_cdk::id());
+    assert_eq!(notification.to, ic_cdk::id());
     STATE.with(|s| {
         s.borrow_mut()
             .deposits
-            .entry(from)
+            .entry(notification.from)
             .or_default()
-            .add_assign(value);
+            .add_assign(notification.value);
     });
 }
 

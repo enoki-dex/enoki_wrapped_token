@@ -1,12 +1,11 @@
 SHELL = /bin/zsh
 
 .PHONY: all
-all: clean deps install test
+all: deps install test
 
 .PHONY: deps
 .SILENT: deps
 deps:
-	dfx start --background
 	./scripts/install_dependencies.sh
 
 .PHONY: install
@@ -34,9 +33,3 @@ build:
 .SILENT: test
 test:
 	./tests/test.sh
-
-.PHONY: clean
-.SILENT: clean
-clean:
-	dfx stop
-	rm -fr .dfx

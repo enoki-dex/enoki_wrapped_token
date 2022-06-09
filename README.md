@@ -15,6 +15,7 @@ It is loosely based on the DIP20 Token Standard. It contains all DIP20 methods, 
 
 ## Dependencies
 
+- [rust](https://rustup.rs)
 - [dfx](https://smartcontracts.org/docs/developers-guide/install-upgrade-remove.html)
 - [cmake](https://cmake.org/)
 
@@ -38,12 +39,9 @@ make config
 ```
 
 ### Run
+with `dfx start` running in another terminal window:
 ```bash
 make deps && make install
-```
-to stop and reset the local data:
-```bash
-make clean
 ```
 
 [//]: # (The app's local URL should be displayed. When you log in, your principal will be displayed.)
@@ -58,6 +56,7 @@ make clean
 [//]: # (```)
 
 ### Test
+after running the above commands:
 ```bash
 make test
 ```
@@ -72,3 +71,4 @@ make test
 - function for a user to call to change to a less-used (faster) shard
 - change hashmap of all user accounts to a big-map
 - transaction history is kept by an archive canister (using a big-map) that listens (PubSub) to all transactions for all shards
+- priority shards, for example for the exchange and liquidity pools

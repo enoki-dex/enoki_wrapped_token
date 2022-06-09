@@ -8,6 +8,13 @@ type ManagerContractData = record {
 };
 type Result = variant { Ok; Err : TxError };
 type Result_1 = variant { Ok : nat; Err : TxError };
+type ShardedTransferNotification = record {
+  to : principal;
+  value : nat;
+  data : text;
+  from : principal;
+  from_shard : principal;
+};
 type TxError = variant {
   UnderlyingTransferFailure;
   TransferCallbackError : text;
@@ -26,6 +33,7 @@ service : (principal, principal, principal) -> {
   getManagementDetails : () -> (ManagerContractData) query;
   getOwner : () -> (principal) query;
   initShard : (principal, vec principal, nat) -> (Result);
+  mint : (nat) -> ();
   removeSiblingShard : (principal) -> (Result);
   setFee : (nat) -> (Result);
   setOwner : (principal) -> (Result);
@@ -33,14 +41,12 @@ service : (principal, principal, principal) -> {
   shardGetSupply : () -> (nat) query;
   shardReceiveTransfer : (principal, nat) -> (Result);
   shardReceiveTransferAndCall : (
-      principal,
-      principal,
-      nat,
+      ShardedTransferNotification,
       principal,
       text,
     ) -> (Result);
   shardTransfer : (principal, principal, nat) -> (Result);
-  shardTransferAndCall : (principal, principal, nat, principal, text) -> (
+  shardTransferAndCall : (principal, principal, nat, principal, text, text) -> (
       Result,
     );
   transferFromManager : (principal, principal, principal, nat) -> (Result);

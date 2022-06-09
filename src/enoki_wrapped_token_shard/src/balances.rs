@@ -118,10 +118,8 @@ async fn transfer_to_sibling_shard(shard_id: Principal, to: Principal, amount: N
 }
 
 async fn transfer_and_call_to_sibling_shard(
-    from: Principal,
     shard_id: Principal,
-    to: Principal,
-    amount: Nat,
+    notification: ShardedTransferNotification,
     notify_principal: Principal,
     notify_method: String,
 ) -> Result<()> {
@@ -129,7 +127,7 @@ async fn transfer_and_call_to_sibling_shard(
     ic_cdk::call(
         shard_id,
         "shardReceiveTransferAndCall",
-        (from, to, amount, notify_principal, notify_method),
+        (notification, notify_principal, notify_method),
     )
     .await
     .map_err(|err| err.into())
@@ -148,18 +146,18 @@ async fn receive_transfer(to: Principal, value: Nat) -> Result<()> {
 #[update(name = "shardReceiveTransferAndCall")]
 #[candid_method(update, rename = "shardReceiveTransferAndCall")]
 async fn receive_transfer_and_call(
-    from: Principal,
-    to: Principal,
-    value: Nat,
+    notification: ShardedTransferNotification,
     notify_principal: Principal,
     notify_method: String,
 ) -> Result<()> {
     assert_is_sibling(&ic_cdk::caller())?;
+    let to = notification.to;
+    let value = notification.value.clone();
     assert_is_customer(&to)?;
 
     // notify recipient
     let result: std::result::Result<((),), _> =
-        ic_cdk::call(notify_principal, &notify_method, (from, to, value.clone())).await;
+        ic_cdk::call(notify_principal, &notify_method, (notification,)).await;
     match result {
         Ok(_) => {
             // send funds to destination
@@ -221,6 +219,7 @@ async fn transfer_and_call(
     value: Nat,
     notify_principal: Principal,
     notify_method: String,
+    data: String,
 ) -> Result<()> {
     let from = ic_cdk::caller();
     let fee = get_fee();
@@ -230,25 +229,24 @@ async fn transfer_and_call(
 
     decrease_balance(from, value.clone())?;
 
+    let notification = ShardedTransferNotification {
+        from,
+        from_shard: ic_cdk::id(),
+        to,
+        value: value.clone(),
+        data
+    };
     let result = if shard_id == ic_cdk::id() {
-        let result: Result<()> =
-            ic_cdk::call(notify_principal, &notify_method, (from, to, value.clone()))
-                .await
-                .map_err(|err| err.into());
+        let result: Result<()> = ic_cdk::call(notify_principal, &notify_method, (notification,))
+            .await
+            .map_err(|err| err.into());
         result.map(|_| {
             // send funds to destination
             increase_balance(to, value.clone());
         })
     } else {
-        transfer_and_call_to_sibling_shard(
-            from,
-            shard_id,
-            to,
-            value.clone(),
-            notify_principal,
-            notify_method,
-        )
-        .await
+        transfer_and_call_to_sibling_shard(shard_id, notification, notify_principal, notify_method)
+            .await
     };
 
     if result.is_err() {

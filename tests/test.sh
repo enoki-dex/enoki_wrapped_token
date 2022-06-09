@@ -35,7 +35,7 @@ end
 start "deposit to exchange"
 DEPOSIT_SHARD=$(dfx canister call mock_exchange getDepositShardId | grep -oE $REGEX_PRINCIPAL)
 EXCHANGE_ID=$(dfx canister id mock_exchange)
-dfx canister call "$ASSIGNED_SHARD" shardTransferAndCall "(principal \"$DEPOSIT_SHARD\", principal \"$EXCHANGE_ID\", 1220000000, principal \"$EXCHANGE_ID\", \"deposit\")"
+dfx canister call "$ASSIGNED_SHARD" shardTransferAndCall "(principal \"$DEPOSIT_SHARD\", principal \"$EXCHANGE_ID\", 1220000000, principal \"$EXCHANGE_ID\", \"deposit\", \"\")"
 BALANCE=$(dfx canister call mock_exchange balance)
 info "user1 balance on exchange: $BALANCE"
 assert_eq "$BALANCE" "(1_219_980_000 : nat)"
