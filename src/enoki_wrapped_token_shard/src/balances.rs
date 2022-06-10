@@ -1,5 +1,5 @@
 use std::cell::RefCell;
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 use std::ops::{AddAssign, SubAssign};
 
 use candid::{candid_method, types::number::Nat, Principal};
@@ -12,22 +12,34 @@ use crate::management::{assert_is_manager_contract, assert_is_sibling, get_fee};
 use crate::stable::StableShardBalances;
 
 pub type ShardBalances = HashMap<Principal, Nat>;
+pub type ShardSpenders = HashMap<Principal, HashSet<Principal>>;
+
+#[derive(Default)]
+pub struct ShardBalancesState {
+    balances: ShardBalances,
+    spenders: ShardSpenders,
+}
 
 thread_local! {
-    static SHARD_BALANCES: RefCell<ShardBalances> = RefCell::new(ShardBalances::default());
+    static STATE: RefCell<ShardBalancesState> = RefCell::new(ShardBalancesState::default());
 }
 
-pub fn export_stable_storage() -> (StableShardBalances,) {
-    let shard_balances: StableShardBalances = SHARD_BALANCES.with(|b| b.take()).into();
-    (shard_balances,)
+pub fn export_stable_storage() -> (StableShardBalances, ShardSpenders) {
+    let ShardBalancesState { balances, spenders } = STATE.with(|b| b.take());
+    (balances.into(), spenders)
 }
 
-pub fn import_stable_storage(shard_balances: StableShardBalances) {
-    SHARD_BALANCES.with(|b| b.replace(shard_balances.into()));
+pub fn import_stable_storage(balances: StableShardBalances, spenders: ShardSpenders) {
+    STATE.with(|b| {
+        b.replace(ShardBalancesState {
+            balances: balances.into(),
+            spenders,
+        })
+    });
 }
 
 pub fn assert_is_customer(user: &Principal) -> Result<()> {
-    if SHARD_BALANCES.with(|b| b.borrow().contains_key(user)) {
+    if STATE.with(|b| b.borrow().balances.contains_key(user)) {
         Ok(())
     } else {
         Err(TxError::AccountDoesNotExist)
@@ -38,28 +50,28 @@ pub fn assert_is_customer(user: &Principal) -> Result<()> {
 #[candid_method(update, rename = "createAccount")]
 pub fn create_account(account: Principal) -> Result<()> {
     assert_is_manager_contract()?;
-    SHARD_BALANCES.with(|b| {
+    STATE.with(|b| {
         let mut balances = b.borrow_mut();
-        if balances.contains_key(&account) {
+        if balances.balances.contains_key(&account) {
             return Err(TxError::AccountAlreadyExists);
         }
-        balances.insert(account, Nat::from(0));
+        balances.balances.insert(account, Nat::from(0));
         Ok(())
     })
 }
 
 pub fn increase_balance(account: Principal, amount: Nat) {
-    SHARD_BALANCES.with(|b| {
+    STATE.with(|b| {
         let mut balances = b.borrow_mut();
-        let balance = balances.entry(account).or_default();
+        let balance = balances.balances.entry(account).or_default();
         balance.add_assign(amount);
     });
 }
 
 pub fn decrease_balance(account: Principal, amount: Nat) -> Result<()> {
-    SHARD_BALANCES.with(|b| {
+    STATE.with(|b| {
         let mut balances = b.borrow_mut();
-        let balance = balances.entry(account).or_default();
+        let balance = balances.balances.entry(account).or_default();
         if *balance >= amount {
             balance.sub_assign(amount);
             Ok(())
@@ -85,10 +97,10 @@ fn pre_transfer_check(
         return Err(TxError::TransferValueTooSmall);
     }
 
-    SHARD_BALANCES.with(|b| {
-        if b.borrow().get(&from).unwrap_or(&Nat::from(0)) < value {
+    STATE.with(|b| {
+        if b.borrow().balances.get(&from).unwrap_or(&Nat::from(0)) < value {
             Err(TxError::InsufficientBalance)
-        } else if check_to && !b.borrow().contains_key(&to) {
+        } else if check_to && !b.borrow().balances.contains_key(&to) {
             Err(TxError::AccountDoesNotExist)
         } else {
             Ok(())
@@ -97,9 +109,9 @@ fn pre_transfer_check(
 }
 
 fn charge_fee(user: Principal, fee: Nat) -> Result<()> {
-    SHARD_BALANCES.with(|b| {
+    STATE.with(|b| {
         let mut balances = b.borrow_mut();
-        let balance = balances.entry(user).or_default();
+        let balance = balances.balances.entry(user).or_default();
         if *balance < fee {
             return Err(TxError::InsufficientBalance);
         }
@@ -211,9 +223,56 @@ async fn transfer_from_manager(
     transfer_internal(from, to_shard, to, value).await
 }
 
-#[update(name = "shardTransferAndCall")]
-#[candid_method(update, rename = "shardTransferAndCall")]
-async fn transfer_and_call(
+fn assert_is_spender(of_account: Principal) -> Result<()> {
+    if STATE.with(|s| {
+        let s = s.borrow();
+        if let Some(spenders) = s.spenders.get(&of_account) {
+            if spenders.contains(&ic_cdk::caller()) {
+                return true;
+            }
+        }
+        false
+    }) {
+        Ok(())
+    } else {
+        Err(TxError::Unauthorized)
+    }
+}
+
+// This account is authorized to drain all your tokens
+#[update(name = "addSpender")]
+#[candid_method(update, rename = "addSpender")]
+async fn add_spender(account: Principal) {
+    STATE.with(|s| {
+        s.borrow_mut()
+            .spenders
+            .entry(ic_cdk::caller())
+            .or_default()
+            .insert(account)
+    });
+}
+
+#[update(name = "removeSpender")]
+#[candid_method(update, rename = "removeSpender")]
+async fn remove_spender(account: Principal) {
+    STATE.with(|s| {
+        s.borrow_mut()
+            .spenders
+            .entry(ic_cdk::caller())
+            .or_default()
+            .remove(&account)
+    });
+}
+
+#[update(name = "shardSpend")]
+#[candid_method(update, rename = "shardSpend")]
+async fn spend(from: Principal, to_shard: Principal, to: Principal, value: Nat) -> Result<()> {
+    assert_is_spender(from)?;
+    transfer_internal(ic_cdk::caller(), to_shard, to, value).await
+}
+
+async fn transfer_and_call_internal(
+    from: Principal,
     shard_id: Principal,
     to: Principal,
     value: Nat,
@@ -221,7 +280,6 @@ async fn transfer_and_call(
     notify_method: String,
     data: String,
 ) -> Result<()> {
-    let from = ic_cdk::caller();
     let fee = get_fee();
     pre_transfer_check(from, shard_id, to, &value, &fee)?;
     charge_fee(from, fee.clone())?;
@@ -234,7 +292,7 @@ async fn transfer_and_call(
         from_shard: ic_cdk::id(),
         to,
         value: value.clone(),
-        data
+        data,
     };
     let result = if shard_id == ic_cdk::id() {
         let result: Result<()> = ic_cdk::call(notify_principal, &notify_method, (notification,))
@@ -258,11 +316,59 @@ async fn transfer_and_call(
     Ok(())
 }
 
+#[update(name = "shardTransferAndCall")]
+#[candid_method(update, rename = "shardTransferAndCall")]
+async fn transfer_and_call(
+    shard_id: Principal,
+    to: Principal,
+    value: Nat,
+    notify_principal: Principal,
+    notify_method: String,
+    data: String,
+) -> Result<()> {
+    let from = ic_cdk::caller();
+    transfer_and_call_internal(
+        from,
+        shard_id,
+        to,
+        value,
+        notify_principal,
+        notify_method,
+        data,
+    )
+    .await
+}
+
+#[update(name = "shardSpendAndCall")]
+#[candid_method(update, rename = "shardSpendAndCall")]
+async fn spend_and_call(
+    from: Principal,
+    shard_id: Principal,
+    to: Principal,
+    value: Nat,
+    notify_principal: Principal,
+    notify_method: String,
+    data: String,
+) -> Result<()> {
+    assert_is_spender(from)?;
+    transfer_and_call_internal(
+        from,
+        shard_id,
+        to,
+        value,
+        notify_principal,
+        notify_method,
+        data,
+    )
+    .await
+}
+
 #[query(name = "shardGetSupply")]
 #[candid_method(query, rename = "shardGetSupply")]
 fn shard_get_supply() -> Nat {
-    SHARD_BALANCES.with(|b| {
+    STATE.with(|b| {
         b.borrow()
+            .balances
             .values()
             .cloned()
             .fold(Nat::from(0), |sum, next| sum + next)
@@ -272,7 +378,7 @@ fn shard_get_supply() -> Nat {
 #[query(name = "shardBalanceOf")]
 #[candid_method(query, rename = "shardBalanceOf")]
 fn balance_of(account: Principal) -> Result<Nat> {
-    SHARD_BALANCES
-        .with(|b| b.borrow().get(&account).cloned())
+    STATE
+        .with(|b| b.borrow().balances.get(&account).cloned())
         .ok_or(TxError::AccountDoesNotExist)
 }
