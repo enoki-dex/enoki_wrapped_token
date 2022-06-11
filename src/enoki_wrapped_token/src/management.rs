@@ -79,6 +79,8 @@ async fn set_fee(fee: Nat) -> Result<()> {
     Ok(())
 }
 
+#[query(name = "getFee")]
+#[candid_method(query, rename = "getFee")]
 pub fn get_fee() -> Nat {
     MANAGEMENT_STATS.with(|s| s.borrow().fee.clone())
 }
