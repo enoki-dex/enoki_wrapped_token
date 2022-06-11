@@ -283,7 +283,7 @@ async fn transfer_and_call_internal(
     let fee = get_fee();
     pre_transfer_check(from, shard_id, to, &value, &fee)?;
     charge_fee(from, fee.clone())?;
-    let value = value - fee;
+    let value = value - fee.clone();
 
     decrease_balance(from, value.clone())?;
 
@@ -291,6 +291,7 @@ async fn transfer_and_call_internal(
         from,
         from_shard: ic_cdk::id(),
         to,
+        fee_charged: fee,
         value: value.clone(),
         data,
     };

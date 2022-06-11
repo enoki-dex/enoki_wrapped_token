@@ -47,10 +47,6 @@ impl Default for ManagerContractData {
     }
 }
 
-pub fn get_fee() -> Nat {
-    MANAGER_CONTRACT_DATA.with(|d| d.borrow().fee.clone())
-}
-
 pub fn init_manager_data(data: ManagerContractData) {
     MANAGER_CONTRACT_DATA.with(|d| {
         *d.borrow_mut() = data;
@@ -89,6 +85,12 @@ fn set_owner(new_owner: Principal) -> Result<()> {
             Err(TxError::Unauthorized)
         }
     })
+}
+
+#[query(name = "getFee")]
+#[candid_method(query, rename = "getFee")]
+pub fn get_fee() -> Nat {
+    MANAGER_CONTRACT_DATA.with(|d| d.borrow().fee.clone())
 }
 
 #[update(name = "setFee")]
