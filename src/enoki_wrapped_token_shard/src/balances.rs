@@ -207,8 +207,8 @@ async fn transfer_internal(
 
 #[update(name = "shardTransfer")]
 #[candid_method(update, rename = "shardTransfer")]
-async fn transfer(to_shard: Principal, to: Principal, value: Nat) -> Result<()> {
-    transfer_internal(ic_cdk::caller(), to_shard, to, value).await
+async fn transfer(to_shard: Principal, to: Principal, value: Nat) {
+    transfer_internal(ic_cdk::caller(), to_shard, to, value).await.unwrap();
 }
 
 #[update(name = "transferFromManager")]
@@ -266,9 +266,9 @@ async fn remove_spender(account: Principal) {
 
 #[update(name = "shardSpend")]
 #[candid_method(update, rename = "shardSpend")]
-async fn spend(from: Principal, to_shard: Principal, to: Principal, value: Nat) -> Result<()> {
+async fn spend(from: Principal, to_shard: Principal, to: Principal, value: Nat) {
     assert_is_spender(from)?;
-    transfer_internal(ic_cdk::caller(), to_shard, to, value).await
+    transfer_internal(ic_cdk::caller(), to_shard, to, value).await.unwrap();
 }
 
 async fn transfer_and_call_internal(
@@ -326,7 +326,7 @@ async fn transfer_and_call(
     notify_principal: Principal,
     notify_method: String,
     data: String,
-) -> Result<()> {
+) {
     let from = ic_cdk::caller();
     transfer_and_call_internal(
         from,
@@ -337,7 +337,7 @@ async fn transfer_and_call(
         notify_method,
         data,
     )
-    .await
+    .await.unwrap()
 }
 
 #[update(name = "shardSpendAndCall")]
@@ -350,7 +350,7 @@ async fn spend_and_call(
     notify_principal: Principal,
     notify_method: String,
     data: String,
-) -> Result<()> {
+) {
     assert_is_spender(from)?;
     transfer_and_call_internal(
         from,
@@ -361,7 +361,7 @@ async fn spend_and_call(
         notify_method,
         data,
     )
-    .await
+    .await.unwrap();
 }
 
 #[query(name = "shardGetSupply")]
