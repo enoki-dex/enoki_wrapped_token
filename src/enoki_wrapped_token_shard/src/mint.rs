@@ -19,25 +19,23 @@ async fn mint(amount: Nat) {
 
 #[update(name = "wrap")]
 #[candid_method(update)]
-async fn wrap(amount: Nat) -> Result<()> {
+async fn wrap(amount: Nat) {
     let caller = ic_cdk::caller();
     let (token, underlying_fee) = get_underlying_token_and_fee().await;
-    let amount_to_credit = deposit_token(caller, amount, token, underlying_fee).await?;
+    let amount_to_credit = deposit_token(caller, amount, token, underlying_fee).await.unwrap();
     increase_balance(caller, amount_to_credit);
-
-    Ok(())
 }
 
 #[update(name = "unwrap")]
 #[candid_method(update)]
-async fn unwrap(amount: Nat, to: Principal) -> Result<()> {
+async fn unwrap(amount: Nat, to: Principal) {
     let caller = ic_cdk::caller();
     let fee = management::get_fee();
     if amount <= fee {
-        return Err(TxError::InsufficientBalance);
+        panic!("{:?}", TxError::InsufficientBalance);
     }
 
-    decrease_balance(caller, amount.clone())?;
+    decrease_balance(caller, amount.clone()).unwrap();
     accept_fee(fee.clone());
     let amount = amount - fee; // when reverting, do not refund fee
 
@@ -45,10 +43,8 @@ async fn unwrap(amount: Nat, to: Principal) -> Result<()> {
 
     if let Err(_) = withdraw_token(amount.clone(), to, token, underlying_fee).await {
         increase_balance(caller, amount);
-        return Err(TxError::UnderlyingTransferFailure);
+        panic!("{:?}", TxError::UnderlyingTransferFailure);
     }
-
-    Ok(())
 }
 
 async fn get_underlying_token_and_fee() -> (DIP20, Nat) {

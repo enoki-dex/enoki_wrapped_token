@@ -34,11 +34,11 @@ pub fn get_user_account(user: &Principal) -> Option<UserAccount> {
 
 #[update(name = "register")]
 #[candid_method(update)]
-async fn register(address: Principal) -> Result<Principal> {
+async fn register(address: Principal) -> Principal {
     if let Some(existing) =
         USER_ACCOUNTS.with(|a| a.borrow().get(&address).map(|a| a.assigned_shard))
     {
-        return Ok(existing);
+        return existing;
     }
     let assigned_shard = get_lowest_utilization_shard();
     let new_user = UserAccount { assigned_shard };
@@ -50,31 +50,31 @@ async fn register(address: Principal) -> Result<Principal> {
         .map_err(|err| err.into());
 
     match response {
-        Ok(_) | Err(TxError::AccountAlreadyExists) => Ok(assigned_shard),
-        Err(err) => Err(err),
+        Ok(_) | Err(TxError::AccountAlreadyExists) => assigned_shard,
+        Err(err) => panic!("{:?}", err),
     }
 }
 
 #[query(name = "getAssignedShardId")]
 #[candid_method(query, rename = "getAssignedShardId")]
-fn get_assigned_shard_id(address: Principal) -> Result<Principal> {
+fn get_assigned_shard_id(address: Principal) -> Principal {
     USER_ACCOUNTS.with(|a| {
         if let Some(UserAccount { assigned_shard, .. }) = a.borrow().get(&address) {
             Ok(*assigned_shard)
         } else {
             Err(TxError::AccountDoesNotExist)
         }
-    })
+    }).unwrap()
 }
 
 #[update(name = "transfer")]
 #[candid_method(update)]
-async fn transfer(to: Principal, amount: Nat) -> Result<()> {
+async fn transfer(to: Principal, amount: Nat) {
     let from = ic_cdk::caller();
-    let from_shard = register(from).await?;
-    let to_shard = register(to).await?;
+    let from_shard = register(from).await;
+    let to_shard = register(to).await;
     let response: Result<()> = ic_cdk::call(from_shard, "transferFromManager", (from, to_shard, to, amount))
         .await
         .map_err(|err| err.into());
-    response
+    response.unwrap()
 }

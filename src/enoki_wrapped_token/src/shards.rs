@@ -47,24 +47,24 @@ fn get_shards_info() -> Vec<Shard> {
 
 #[query(name = "totalSupply")]
 #[candid_method(query, rename = "totalSupply")]
-pub async fn total_supply() -> Result<Nat> {
+pub async fn total_supply() -> Nat {
     let values: Result<Vec<(Nat, )>> = foreach_shard("shardGetSupply", ()).await;
     values.map(|values| {
         values
             .into_iter()
             .fold(Nat::from(0), |sum, next| sum + next.0)
-    })
+    }).unwrap()
 }
 
 #[query(name = "getAccruedFees")]
 #[candid_method(query, rename = "getAccruedFees")]
-async fn get_accrued_fees() -> Result<Nat> {
+async fn get_accrued_fees() -> Nat {
     let values: Result<Vec<(Nat, )>> = foreach_shard("getAccruedFees", ()).await;
     values.map(|values| {
         values
             .into_iter()
             .fold(Nat::from(0), |sum, next| sum + next.0)
-    })
+    }).unwrap()
 }
 
 #[query(name = "balanceOf")]
@@ -74,13 +74,13 @@ async fn balance_of(id: Principal) -> Nat {
                     assigned_shard,
                 }) = get_user_account(&id)
     {
-        let balance: Result<(Result<Nat>, )> =
+        let balance: Result<(Nat, )> =
             ic_cdk::call(assigned_shard, "shardBalanceOf", (id, ))
                 .await
                 .map_err(|err| err.into());
 
         balance
-            .map(|res| res.0.unwrap_or_default())
+            .map(|res| res.0)
             .unwrap_or_default()
     } else {
         Default::default()

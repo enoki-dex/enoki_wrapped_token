@@ -267,7 +267,7 @@ async fn remove_spender(account: Principal) {
 #[update(name = "shardSpend")]
 #[candid_method(update, rename = "shardSpend")]
 async fn spend(from: Principal, to_shard: Principal, to: Principal, value: Nat) {
-    assert_is_spender(from)?;
+    assert_is_spender(from).unwrap();
     transfer_internal(ic_cdk::caller(), to_shard, to, value).await.unwrap();
 }
 
@@ -351,7 +351,7 @@ async fn spend_and_call(
     notify_method: String,
     data: String,
 ) {
-    assert_is_spender(from)?;
+    assert_is_spender(from).unwrap();
     transfer_and_call_internal(
         from,
         shard_id,
@@ -378,8 +378,9 @@ fn shard_get_supply() -> Nat {
 
 #[query(name = "shardBalanceOf")]
 #[candid_method(query, rename = "shardBalanceOf")]
-fn balance_of(account: Principal) -> Result<Nat> {
+fn balance_of(account: Principal) -> Nat {
     STATE
         .with(|b| b.borrow().balances.get(&account).cloned())
         .ok_or(TxError::AccountDoesNotExist)
+        .unwrap()
 }

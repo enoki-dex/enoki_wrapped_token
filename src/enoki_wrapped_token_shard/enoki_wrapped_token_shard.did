@@ -7,12 +7,12 @@ type ManagerContractData = record {
   manager_contract : principal;
 };
 type Result = variant { Ok; Err : TxError };
-type Result_1 = variant { Ok : nat; Err : TxError };
 type ShardedTransferNotification = record {
   to : principal;
   value : nat;
   data : text;
   from : principal;
+  fee_charged : nat;
   from_shard : principal;
 };
 type TxError = variant {
@@ -28,16 +28,19 @@ type TxError = variant {
 };
 service : (principal, principal, principal) -> {
   addSiblingShard : (principal) -> (Result);
+  addSpender : (principal) -> ();
   createAccount : (principal) -> (Result);
   getAccruedFees : () -> (nat) query;
+  getFee : () -> (nat) query;
   getManagementDetails : () -> (ManagerContractData) query;
   getOwner : () -> (principal) query;
   initShard : (principal, vec principal, nat) -> (Result);
   mint : (nat) -> ();
   removeSiblingShard : (principal) -> (Result);
+  removeSpender : (principal) -> ();
   setFee : (nat) -> (Result);
   setOwner : (principal) -> (Result);
-  shardBalanceOf : (principal) -> (Result_1) query;
+  shardBalanceOf : (principal) -> (nat) query;
   shardGetSupply : () -> (nat) query;
   shardReceiveTransfer : (principal, nat) -> (Result);
   shardReceiveTransferAndCall : (
@@ -45,11 +48,26 @@ service : (principal, principal, principal) -> {
       principal,
       text,
     ) -> (Result);
-  shardTransfer : (principal, principal, nat) -> (Result);
-  shardTransferAndCall : (principal, principal, nat, principal, text, text) -> (
-      Result,
-    );
+  shardSpend : (principal, principal, principal, nat) -> ();
+  shardSpendAndCall : (
+      principal,
+      principal,
+      principal,
+      nat,
+      principal,
+      text,
+      text,
+    ) -> ();
+  shardTransfer : (principal, principal, nat) -> ();
+  shardTransferAndCall : (
+      principal,
+      principal,
+      nat,
+      principal,
+      text,
+      text,
+    ) -> ();
   transferFromManager : (principal, principal, principal, nat) -> (Result);
-  unwrap : (nat, principal) -> (Result);
-  wrap : (nat) -> (Result);
+  unwrap : (nat, principal) -> ();
+  wrap : (nat) -> ();
 }

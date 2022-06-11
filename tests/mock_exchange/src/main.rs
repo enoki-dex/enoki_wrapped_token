@@ -15,9 +15,8 @@ async fn init(token_accepted: Principal) {
 }
 
 async fn register(token: Principal) {
-    let response: Result<(enoki_wrapped_token_shared::types::Result<Principal>,), _> =
-        ic_cdk::call(token, "register", (ic_cdk::id(),)).await;
-    let assigned_shard = response.unwrap().0.unwrap();
+    let response: Result<(Principal,), _> = ic_cdk::call(token, "register", (ic_cdk::id(),)).await;
+    let assigned_shard = response.unwrap().0;
     STATE.with(|s| s.borrow_mut().assigned_shard = assigned_shard);
 }
 
@@ -87,13 +86,13 @@ async fn withdraw_all(shard_id: Principal, to: Principal) {
     let amount = STATE
         .with(|s| s.borrow_mut().deposits.remove(&ic_cdk::caller()))
         .expect("no deposits found");
-    let response: Result<(enoki_wrapped_token_shared::types::Result<()>,), _> = ic_cdk::call(
+    let response: Result<(), _> = ic_cdk::call(
         STATE.with(|s| s.borrow().assigned_shard),
         "shardTransfer",
         (shard_id, to, amount),
     )
     .await;
-    response.unwrap().0.unwrap();
+    response.unwrap();
 }
 
 #[query(name = "balance")]

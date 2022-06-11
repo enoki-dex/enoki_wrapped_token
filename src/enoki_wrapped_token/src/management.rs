@@ -1,6 +1,6 @@
 use std::cell::RefCell;
 
-use candid::{candid_method, CandidType, Deserialize, Principal, types::number::Nat};
+use candid::{candid_method, types::number::Nat, CandidType, Deserialize, Principal};
 use ic_cdk_macros::*;
 
 use enoki_wrapped_token_shared::types::*;
@@ -13,9 +13,9 @@ thread_local! {
     static MANAGEMENT_STATS: RefCell<ManagementStats> = RefCell::new(ManagementStats::default());
 }
 
-pub fn export_stable_storage() -> (StableManagementStats, ) {
+pub fn export_stable_storage() -> (StableManagementStats,) {
     let management_stats = MANAGEMENT_STATS.with(|s| s.take()).into();
-    (management_stats, )
+    (management_stats,)
 }
 
 pub fn import_stable_storage(management_stats: StableManagementStats) {
@@ -57,11 +57,11 @@ pub fn init_management_data(stats: ManagementStats) {
 
 #[query(name = "stats")]
 #[candid_method(query)]
-async fn stats() -> Result<Stats> {
+async fn stats() -> Stats {
     let mut stats: Stats = MANAGEMENT_STATS.with(|s| s.borrow().clone()).into();
-    stats.total_supply = total_supply().await?;
+    stats.total_supply = total_supply().await;
     stats.cycles = ic_cdk::api::canister_balance();
-    Ok(stats)
+    stats
 }
 
 #[query(name = "owner")]

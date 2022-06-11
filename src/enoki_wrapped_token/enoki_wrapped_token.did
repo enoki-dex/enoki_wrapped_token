@@ -6,9 +6,6 @@ type Metadata = record {
   symbol : text;
 };
 type Result = variant { Ok; Err : TxError };
-type Result_1 = variant { Ok : nat; Err : TxError };
-type Result_2 = variant { Ok : principal; Err : TxError };
-type Result_3 = variant { Ok : Stats; Err : TxError };
 type Shard = record { id : principal; num_accounts : nat64 };
 type Stats = record {
   fee : nat;
@@ -32,20 +29,20 @@ service : (principal, text, text, text, nat8, principal, nat) -> {
   addShard : (principal) -> (Result);
   balanceOf : (principal) -> (nat) query;
   decimals : () -> (nat8) query;
-  getAccruedFees : () -> (Result_1) query;
-  getAssignedShardId : (principal) -> (Result_2) query;
+  getAccruedFees : () -> (nat) query;
+  getAssignedShardId : (principal) -> (principal) query;
   getLogo : () -> (text) query;
   getMetadata : () -> (Metadata) query;
   getShardIds : () -> (vec principal) query;
   getShardsInfo : () -> (vec Shard) query;
   name : () -> (text) query;
   owner : () -> (principal) query;
-  register : (principal) -> (Result_2);
+  register : (principal) -> (principal);
   setFee : (nat) -> (Result);
   setLogo : (text) -> (Result);
   setOwner : (principal) -> (Result);
-  stats : () -> (Result_3) query;
+  stats : () -> (Stats) query;
   symbol : () -> (text) query;
-  totalSupply : () -> (Result_1) query;
-  transfer : (principal, nat) -> (Result);
+  totalSupply : () -> (nat) query;
+  transfer : (principal, nat) -> ();
 }

@@ -17,3 +17,8 @@ if [ -n "$DEPLOY_TOKEN_B" ]; then
   )\""
   ./src/enoki_wrapped_token_shard/deploy.sh enoki_wrapped_token_b "$UNDERLYING_TOKEN_ID_B" "$MANAGER_ID"
 fi
+
+echo "DEPLOYED TOKEN A: $(dfx canister id enoki_wrapped_token)"
+if [ -n "$DEPLOY_TOKEN_B" ]; then
+  echo "DEPLOYED TOKEN B: $(dfx canister id enoki_wrapped_token_b)"
+fi
