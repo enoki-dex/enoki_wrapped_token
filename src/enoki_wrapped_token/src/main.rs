@@ -29,7 +29,6 @@ fn init(
     name: String,
     symbol: String,
     decimals: u8,
-    owner: Principal,
     fee: Nat,
 ) {
     init_metadata(Metadata {
@@ -40,7 +39,7 @@ fn init(
         underlying_token,
     });
     init_management_data(ManagementStats {
-        owner,
+        owner: ic_cdk::caller(),
         fee,
         deploy_time: ic_cdk::api::time(),
     });

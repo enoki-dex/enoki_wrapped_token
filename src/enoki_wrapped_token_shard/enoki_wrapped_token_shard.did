@@ -26,7 +26,7 @@ type TxError = variant {
   AccountAlreadyExists;
   Other : text;
 };
-service : (principal, principal, principal) -> {
+service : (principal, principal) -> {
   addSiblingShard : (principal) -> (Result);
   addSpender : (principal) -> ();
   createAccount : (principal) -> (Result);

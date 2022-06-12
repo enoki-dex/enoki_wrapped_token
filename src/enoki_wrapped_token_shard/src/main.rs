@@ -17,9 +17,9 @@ mod upgrade;
 
 #[init]
 #[candid_method(init)]
-fn init(owner: Principal, manager_contract: Principal, underlying_token: Principal) {
+fn init(manager_contract: Principal, underlying_token: Principal) {
     management::init_manager_data(ManagerContractData {
-        owner,
+        owner: ic_cdk::caller(),
         manager_contract,
         fee: Default::default(),
         underlying_token,
