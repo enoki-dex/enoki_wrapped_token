@@ -42,7 +42,10 @@ pub fn assert_is_customer(user: &Principal) -> Result<()> {
     if STATE.with(|b| b.borrow().balances.contains_key(user)) {
         Ok(())
     } else {
-        Err(TxError::AccountDoesNotExist)
+        Err(TxError::AccountDoesNotExist {
+            shard: ic_cdk::id().to_string(),
+            user: user.to_string(),
+        })
     }
 }
 
@@ -101,7 +104,10 @@ fn pre_transfer_check(
         if b.borrow().balances.get(&from).unwrap_or(&Nat::from(0)) < value {
             Err(TxError::InsufficientBalance)
         } else if check_to && !b.borrow().balances.contains_key(&to) {
-            Err(TxError::AccountDoesNotExist)
+            Err(TxError::AccountDoesNotExist {
+                shard: ic_cdk::id().to_string(),
+                user: to.to_string(),
+            })
         } else {
             Ok(())
         }
@@ -208,7 +214,9 @@ async fn transfer_internal(
 #[update(name = "shardTransfer")]
 #[candid_method(update, rename = "shardTransfer")]
 async fn transfer(to_shard: Principal, to: Principal, value: Nat) {
-    transfer_internal(ic_cdk::caller(), to_shard, to, value).await.unwrap();
+    transfer_internal(ic_cdk::caller(), to_shard, to, value)
+        .await
+        .unwrap();
 }
 
 #[update(name = "transferFromManager")]
@@ -268,7 +276,9 @@ async fn remove_spender(account: Principal) {
 #[candid_method(update, rename = "shardSpend")]
 async fn spend(from: Principal, to_shard: Principal, to: Principal, value: Nat) {
     assert_is_spender(from).unwrap();
-    transfer_internal(ic_cdk::caller(), to_shard, to, value).await.unwrap();
+    transfer_internal(from, to_shard, to, value)
+        .await
+        .unwrap();
 }
 
 async fn transfer_and_call_internal(
@@ -337,7 +347,8 @@ async fn transfer_and_call(
         notify_method,
         data,
     )
-    .await.unwrap()
+    .await
+    .unwrap()
 }
 
 #[update(name = "shardSpendAndCall")]
@@ -361,7 +372,8 @@ async fn spend_and_call(
         notify_method,
         data,
     )
-    .await.unwrap();
+    .await
+    .unwrap();
 }
 
 #[query(name = "shardGetSupply")]
@@ -381,6 +393,9 @@ fn shard_get_supply() -> Nat {
 fn balance_of(account: Principal) -> Nat {
     STATE
         .with(|b| b.borrow().balances.get(&account).cloned())
-        .ok_or(TxError::AccountDoesNotExist)
+        .ok_or(TxError::AccountDoesNotExist {
+            shard: ic_cdk::id().to_string(),
+            user: account.to_string(),
+        })
         .unwrap()
 }

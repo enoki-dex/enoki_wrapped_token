@@ -150,7 +150,7 @@ pub fn get_lowest_utilization_shard() -> Principal {
             .min_by(|&a, &b| {
                 let comp = a.num_accounts.cmp(&b.num_accounts);
                 if let Ordering::Equal = comp {
-                    a.id.cmp(&b.id)
+                    a.id.to_string().cmp(&b.id.to_string())
                 } else {
                     comp
                 }

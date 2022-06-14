@@ -1,6 +1,6 @@
 use std::string::String;
 
-use candid::{CandidType, Deserialize, Principal, Nat};
+use candid::{CandidType, Deserialize, Nat, Principal};
 use ic_cdk::api::call::RejectionCode;
 
 #[derive(CandidType, Debug, Deserialize)]
@@ -8,7 +8,7 @@ pub enum TxError {
     InsufficientBalance,
     Unauthorized,
     ShardDoesNotExist,
-    AccountDoesNotExist,
+    AccountDoesNotExist { shard: String, user: String },
     AccountAlreadyExists,
     TransferValueTooSmall,
     TransferCallbackError(String),
@@ -31,5 +31,5 @@ pub struct ShardedTransferNotification {
     pub to: Principal,
     pub fee_charged: Nat,
     pub value: Nat,
-    pub data: String
+    pub data: String,
 }

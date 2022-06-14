@@ -1,7 +1,7 @@
 use std::cell::RefCell;
 use std::collections::HashMap;
 
-use candid::{candid_method, CandidType, Principal, Nat};
+use candid::{candid_method, CandidType, Nat, Principal};
 use ic_cdk_macros::*;
 use serde::{Deserialize, Serialize};
 
@@ -58,13 +58,18 @@ async fn register(address: Principal) -> Principal {
 #[query(name = "getAssignedShardId")]
 #[candid_method(query, rename = "getAssignedShardId")]
 fn get_assigned_shard_id(address: Principal) -> Principal {
-    USER_ACCOUNTS.with(|a| {
-        if let Some(UserAccount { assigned_shard, .. }) = a.borrow().get(&address) {
-            Ok(*assigned_shard)
-        } else {
-            Err(TxError::AccountDoesNotExist)
-        }
-    }).unwrap()
+    USER_ACCOUNTS
+        .with(|a| {
+            if let Some(UserAccount { assigned_shard, .. }) = a.borrow().get(&address) {
+                Ok(*assigned_shard)
+            } else {
+                Err(TxError::AccountDoesNotExist {
+                    shard: format!("main contract {}", ic_cdk::id()),
+                    user: address.to_string(),
+                })
+            }
+        })
+        .unwrap()
 }
 
 #[update(name = "transfer")]
@@ -73,8 +78,12 @@ async fn transfer(to: Principal, amount: Nat) {
     let from = ic_cdk::caller();
     let from_shard = register(from).await;
     let to_shard = register(to).await;
-    let response: Result<()> = ic_cdk::call(from_shard, "transferFromManager", (from, to_shard, to, amount))
-        .await
-        .map_err(|err| err.into());
+    let response: Result<()> = ic_cdk::call(
+        from_shard,
+        "transferFromManager",
+        (from, to_shard, to, amount),
+    )
+    .await
+    .map_err(|err| err.into());
     response.unwrap()
 }
