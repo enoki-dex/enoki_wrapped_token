@@ -2,8 +2,8 @@ use std::cell::RefCell;
 use std::cmp::Ordering;
 use std::collections::HashMap;
 
-use candid::{candid_method, CandidType, Principal, types::number::Nat};
 use candid::utils::{ArgumentDecoder, ArgumentEncoder};
+use candid::{candid_method, types::number::Nat, CandidType, Principal};
 use ic_cdk_macros::*;
 use serde::{Deserialize, Serialize};
 
@@ -25,8 +25,8 @@ thread_local! {
     static SHARDS: RefCell<Shards> = RefCell::new(Shards::default());
 }
 
-pub fn export_stable_storage() -> (Shards, ) {
-    (SHARDS.with(|s| s.take()), )
+pub fn export_stable_storage() -> (Shards,) {
+    (SHARDS.with(|s| s.take()),)
 }
 
 pub fn import_stable_storage(shards: Shards) {
@@ -39,6 +39,12 @@ fn get_shard_ids() -> Vec<Principal> {
     SHARDS.with(|s| s.borrow().keys().copied().collect())
 }
 
+#[query(name = "getShardIdsUpdate")]
+#[candid_method(query, rename = "getShardIdsUpdate")]
+fn get_shard_ids_update() -> Vec<Principal> {
+    SHARDS.with(|s| s.borrow().keys().copied().collect())
+}
+
 #[query(name = "getShardsInfo")]
 #[candid_method(query, rename = "getShardsInfo")]
 fn get_shards_info() -> Vec<Shard> {
@@ -48,40 +54,38 @@ fn get_shards_info() -> Vec<Shard> {
 #[query(name = "totalSupply")]
 #[candid_method(query, rename = "totalSupply")]
 pub async fn total_supply() -> Nat {
-    let values: Result<Vec<(Nat, )>> = foreach_shard("shardGetSupply", ()).await;
-    values.map(|values| {
-        values
-            .into_iter()
-            .fold(Nat::from(0), |sum, next| sum + next.0)
-    }).unwrap()
+    let values: Result<Vec<(Nat,)>> = foreach_shard("shardGetSupply", ()).await;
+    values
+        .map(|values| {
+            values
+                .into_iter()
+                .fold(Nat::from(0), |sum, next| sum + next.0)
+        })
+        .unwrap()
 }
 
 #[query(name = "getAccruedFees")]
 #[candid_method(query, rename = "getAccruedFees")]
 async fn get_accrued_fees() -> Nat {
-    let values: Result<Vec<(Nat, )>> = foreach_shard("getAccruedFees", ()).await;
-    values.map(|values| {
-        values
-            .into_iter()
-            .fold(Nat::from(0), |sum, next| sum + next.0)
-    }).unwrap()
+    let values: Result<Vec<(Nat,)>> = foreach_shard("getAccruedFees", ()).await;
+    values
+        .map(|values| {
+            values
+                .into_iter()
+                .fold(Nat::from(0), |sum, next| sum + next.0)
+        })
+        .unwrap()
 }
 
 #[query(name = "balanceOf")]
 #[candid_method(query, rename = "balanceOf")]
 async fn balance_of(id: Principal) -> Nat {
-    if let Some(UserAccount {
-                    assigned_shard,
-                }) = get_user_account(&id)
-    {
-        let balance: Result<(Nat, )> =
-            ic_cdk::call(assigned_shard, "shardBalanceOf", (id, ))
-                .await
-                .map_err(|err| err.into());
+    if let Some(UserAccount { assigned_shard }) = get_user_account(&id) {
+        let balance: Result<(Nat,)> = ic_cdk::call(assigned_shard, "shardBalanceOf", (id,))
+            .await
+            .map_err(|err| err.into());
 
-        balance
-            .map(|res| res.0)
-            .unwrap_or_default()
+        balance.map(|res| res.0).unwrap_or_default()
     } else {
         Default::default()
     }
@@ -97,7 +101,7 @@ async fn foreach_shard<T: ArgumentEncoder + Clone, R: for<'a> ArgumentDecoder<'a
             .into_iter()
             .map(|shard| ic_cdk::call(shard, method, args.clone())),
     )
-        .await;
+    .await;
     responses
         .into_iter()
         .collect::<std::result::Result<Vec<R>, _>>()
@@ -115,11 +119,11 @@ async fn add_shard(id: Principal) -> Result<()> {
         "initShard",
         (get_underlying_token(), sibling_shards, get_fee()),
     )
-        .await
-        .map_err(|err| err.into());
+    .await
+    .map_err(|err| err.into());
     response?;
 
-    foreach_shard::<(Principal, ), ()>("addSiblingShard", (id, )).await?;
+    foreach_shard::<(Principal,), ()>("addSiblingShard", (id,)).await?;
 
     SHARDS.with(|s| {
         s.borrow_mut().insert(
@@ -161,7 +165,7 @@ pub fn get_lowest_utilization_shard() -> Principal {
 }
 
 pub async fn update_fee(new_fee: Nat) -> Result<()> {
-    let _ = foreach_shard::<(Nat, ), ()>("setFee", (new_fee, )).await?;
+    let _ = foreach_shard::<(Nat,), ()>("setFee", (new_fee,)).await?;
 
     Ok(())
 }
