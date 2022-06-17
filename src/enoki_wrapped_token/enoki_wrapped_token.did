@@ -18,6 +18,7 @@ service : () -> {
   balanceOf : (principal) -> (nat);
   decimals : () -> (nat8) query;
   finishInit : (principal, text, text, text, nat8, nat) -> ();
+  fixSiblings : () -> ();
   getAccruedFees : () -> (nat) query;
   getAssignedShardId : (principal) -> (principal) query;
   getFee : () -> (nat) query;

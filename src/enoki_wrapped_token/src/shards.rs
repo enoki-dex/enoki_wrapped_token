@@ -2,8 +2,8 @@ use std::cell::RefCell;
 use std::cmp::Ordering;
 use std::collections::HashMap;
 
-use candid::{candid_method, CandidType, Principal, types::number::Nat};
 use candid::utils::{ArgumentDecoder, ArgumentEncoder};
+use candid::{candid_method, types::number::Nat, CandidType, Principal};
 use ic_cdk_macros::*;
 use serde::{Deserialize, Serialize};
 
@@ -25,8 +25,8 @@ thread_local! {
     static SHARDS: RefCell<Shards> = RefCell::new(Shards::default());
 }
 
-pub fn export_stable_storage() -> (Shards, ) {
-    (SHARDS.with(|s| s.take()), )
+pub fn export_stable_storage() -> (Shards,) {
+    (SHARDS.with(|s| s.take()),)
 }
 
 pub fn import_stable_storage(shards: Shards) {
@@ -54,7 +54,7 @@ fn get_shards_info() -> Vec<Shard> {
 #[update(name = "totalSupply")]
 #[candid_method(update, rename = "totalSupply")]
 pub async fn total_supply() -> Nat {
-    let values: Result<Vec<(Nat, )>> = foreach_shard("shardGetSupply", ()).await;
+    let values: Result<Vec<(Nat,)>> = foreach_shard("shardGetSupply", ()).await;
     values
         .map(|values| {
             values
@@ -67,7 +67,7 @@ pub async fn total_supply() -> Nat {
 #[query(name = "getAccruedFees")]
 #[candid_method(query, rename = "getAccruedFees")]
 async fn get_accrued_fees() -> Nat {
-    let values: Result<Vec<(Nat, )>> = foreach_shard("getAccruedFees", ()).await;
+    let values: Result<Vec<(Nat,)>> = foreach_shard("getAccruedFees", ()).await;
     values
         .map(|values| {
             values
@@ -81,7 +81,7 @@ async fn get_accrued_fees() -> Nat {
 #[candid_method(update, rename = "balanceOf")]
 async fn balance_of(id: Principal) -> Nat {
     if let Some(UserAccount { assigned_shard }) = get_user_account(&id) {
-        let balance: Result<(Nat, )> = ic_cdk::call(assigned_shard, "shardBalanceOf", (id, ))
+        let balance: Result<(Nat,)> = ic_cdk::call(assigned_shard, "shardBalanceOf", (id,))
             .await
             .map_err(|err| err.into());
 
@@ -101,7 +101,7 @@ async fn foreach_shard<T: ArgumentEncoder + Clone, R: for<'a> ArgumentDecoder<'a
             .into_iter()
             .map(|shard| ic_cdk::call(shard, method, args.clone())),
     )
-        .await;
+    .await;
     responses
         .into_iter()
         .collect::<std::result::Result<Vec<R>, _>>()
@@ -119,11 +119,13 @@ async fn add_shard(id: Principal) {
         "initShard",
         (get_underlying_token(), sibling_shards, get_fee()),
     )
-        .await
-        .map_err(|err| err.into());
+    .await
+    .map_err(|err| err.into());
     response.unwrap();
 
-    foreach_shard::<(Principal, ), ()>("addSiblingShard", (id, )).await.unwrap();
+    foreach_shard::<(Principal,), ()>("addSiblingShard", (id,))
+        .await
+        .unwrap();
 
     SHARDS.with(|s| {
         s.borrow_mut().insert(
@@ -134,6 +136,27 @@ async fn add_shard(id: Principal) {
             },
         )
     });
+}
+
+#[update(name = "fixSiblings")]
+#[candid_method(update, rename = "fixSiblings")]
+async fn fix_siblings() {
+    assert_is_owner().unwrap();
+    let sibling_shards = get_shard_ids();
+
+    for &shard in sibling_shards.iter() {
+        let siblings: Vec<Principal> = sibling_shards
+            .iter()
+            .filter(|&&s| s != shard)
+            .copied()
+            .collect();
+        for sibling in siblings {
+            let result: Result<()> = ic_cdk::call(shard, "addSiblingShard", (sibling,))
+                .await
+                .map_err(|e| e.into());
+            result.unwrap();
+        }
+    }
 }
 
 pub fn update_shard_accounts<TF: Fn(&mut u64)>(id: Principal, func: TF) {
@@ -163,7 +186,7 @@ pub fn get_lowest_utilization_shard() -> Principal {
 }
 
 pub async fn update_fee(new_fee: Nat) -> Result<()> {
-    let _ = foreach_shard::<(Nat, ), ()>("setFee", (new_fee, )).await?;
+    let _ = foreach_shard::<(Nat,), ()>("setFee", (new_fee,)).await?;
 
     Ok(())
 }
