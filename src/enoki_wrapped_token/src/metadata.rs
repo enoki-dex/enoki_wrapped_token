@@ -4,8 +4,6 @@ use candid::{candid_method, CandidType, Principal};
 use ic_cdk_macros::*;
 use serde::{Deserialize, Serialize};
 
-use enoki_wrapped_token_shared::types::*;
-
 use crate::management::assert_is_owner;
 
 #[derive(Serialize, Deserialize, CandidType, Clone, Debug)]
@@ -81,8 +79,7 @@ fn get_metadata() -> Metadata {
 
 #[update(name = "setLogo")]
 #[candid_method(update, rename = "setLogo")]
-fn set_logo(logo: String) -> Result<()> {
-    assert_is_owner()?;
+fn set_logo(logo: String) {
+    assert_is_owner().unwrap();
     METADATA.with(|d| d.borrow_mut().logo = logo);
-    Ok(())
 }

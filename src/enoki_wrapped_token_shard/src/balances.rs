@@ -2,7 +2,7 @@ use std::cell::RefCell;
 use std::collections::{HashMap, HashSet};
 use std::ops::{AddAssign, SubAssign};
 
-use candid::{candid_method, types::number::Nat, Principal};
+use candid::{candid_method, Principal, types::number::Nat};
 use ic_cdk_macros::*;
 
 use enoki_wrapped_token_shared::types::*;
@@ -51,15 +51,14 @@ pub fn assert_is_customer(user: &Principal) -> Result<()> {
 
 #[update(name = "createAccount")]
 #[candid_method(update, rename = "createAccount")]
-pub fn create_account(account: Principal) -> Result<()> {
-    assert_is_manager_contract()?;
+pub fn create_account(account: Principal) {
+    assert_is_manager_contract().unwrap();
     STATE.with(|b| {
         let mut balances = b.borrow_mut();
         if balances.balances.contains_key(&account) {
-            return Err(TxError::AccountAlreadyExists);
+            panic!("{:?}", TxError::AccountAlreadyExists);
         }
         balances.balances.insert(account, Nat::from(0));
-        Ok(())
     })
 }
 
@@ -140,25 +139,24 @@ async fn transfer_and_call_to_sibling_shard(
     notification: ShardedTransferNotification,
     notify_principal: Principal,
     notify_method: String,
-) -> Result<()> {
+) -> Result<String> {
     assert_is_sibling(&shard_id)?;
-    ic_cdk::call(
+    let result: Result<(String, )> = ic_cdk::call(
         shard_id,
         "shardReceiveTransferAndCall",
         (notification, notify_principal, notify_method),
     )
-    .await
-    .map_err(|err| err.into())
+        .await
+        .map_err(|err| err.into());
+    result.map(|res| res.0)
 }
 
 #[update(name = "shardReceiveTransfer")]
 #[candid_method(update, rename = "shardReceiveTransfer")]
-async fn receive_transfer(to: Principal, value: Nat) -> Result<()> {
-    assert_is_sibling(&ic_cdk::caller())?;
-    assert_is_customer(&to)?;
+async fn receive_transfer(to: Principal, value: Nat) {
+    assert_is_sibling(&ic_cdk::caller()).unwrap();
+    assert_is_customer(&to).unwrap();
     increase_balance(to, value);
-
-    Ok(())
 }
 
 #[update(name = "shardReceiveTransferAndCall")]
@@ -167,22 +165,22 @@ async fn receive_transfer_and_call(
     notification: ShardedTransferNotification,
     notify_principal: Principal,
     notify_method: String,
-) -> Result<()> {
-    assert_is_sibling(&ic_cdk::caller())?;
+) -> String {
+    assert_is_sibling(&ic_cdk::caller()).unwrap();
     let to = notification.to;
     let value = notification.value.clone();
-    assert_is_customer(&to)?;
+    assert_is_customer(&to).unwrap();
 
     // notify recipient
-    let result: std::result::Result<((),), _> =
-        ic_cdk::call(notify_principal, &notify_method, (notification,)).await;
+    let result: std::result::Result<(String, ), _> =
+        ic_cdk::call(notify_principal, &notify_method, (notification, )).await;
     match result {
-        Ok(_) => {
+        Ok(response) => {
             // send funds to destination
             increase_balance(to, value);
-            Ok(())
+            response.0
         }
-        Err(error) => Err(error.into()),
+        Err(error) => panic!("{:?}", error),
     }
 }
 
@@ -221,14 +219,9 @@ async fn transfer(to_shard: Principal, to: Principal, value: Nat) {
 
 #[update(name = "transferFromManager")]
 #[candid_method(update, rename = "transferFromManager")]
-async fn transfer_from_manager(
-    from: Principal,
-    to_shard: Principal,
-    to: Principal,
-    value: Nat,
-) -> Result<()> {
-    assert_is_manager_contract()?;
-    transfer_internal(from, to_shard, to, value).await
+async fn transfer_from_manager(from: Principal, to_shard: Principal, to: Principal, value: Nat) {
+    assert_is_manager_contract().unwrap();
+    transfer_internal(from, to_shard, to, value).await.unwrap();
 }
 
 fn assert_is_spender(of_account: Principal) -> Result<()> {
@@ -276,9 +269,7 @@ async fn remove_spender(account: Principal) {
 #[candid_method(update, rename = "shardSpend")]
 async fn spend(from: Principal, to_shard: Principal, to: Principal, value: Nat) {
     assert_is_spender(from).unwrap();
-    transfer_internal(from, to_shard, to, value)
-        .await
-        .unwrap();
+    transfer_internal(from, to_shard, to, value).await.unwrap();
 }
 
 async fn transfer_and_call_internal(
@@ -289,7 +280,7 @@ async fn transfer_and_call_internal(
     notify_principal: Principal,
     notify_method: String,
     data: String,
-) -> Result<()> {
+) -> Result<String> {
     let fee = get_fee();
     pre_transfer_check(from, shard_id, to, &value, &fee)?;
     charge_fee(from, fee.clone())?;
@@ -306,25 +297,21 @@ async fn transfer_and_call_internal(
         data,
     };
     let result = if shard_id == ic_cdk::id() {
-        let result: Result<()> = ic_cdk::call(notify_principal, &notify_method, (notification,))
-            .await
-            .map_err(|err| err.into());
-        result.map(|_| {
+        let result: Result<(String, )> =
+            ic_cdk::call(notify_principal, &notify_method, (notification, ))
+                .await
+                .map_err(|err| err.into());
+        result.map(|res| {
             // send funds to destination
             increase_balance(to, value.clone());
+            res.0
         })
     } else {
         transfer_and_call_to_sibling_shard(shard_id, notification, notify_principal, notify_method)
             .await
     };
 
-    if result.is_err() {
-        // revert transaction
-        increase_balance(from, value);
-        return result;
-    }
-
-    Ok(())
+    result
 }
 
 #[update(name = "shardTransferAndCall")]
@@ -336,7 +323,7 @@ async fn transfer_and_call(
     notify_principal: Principal,
     notify_method: String,
     data: String,
-) {
+) -> String {
     let from = ic_cdk::caller();
     transfer_and_call_internal(
         from,
@@ -347,8 +334,8 @@ async fn transfer_and_call(
         notify_method,
         data,
     )
-    .await
-    .unwrap()
+        .await
+        .unwrap()
 }
 
 #[update(name = "shardSpendAndCall")]
@@ -361,7 +348,7 @@ async fn spend_and_call(
     notify_principal: Principal,
     notify_method: String,
     data: String,
-) {
+) -> String {
     assert_is_spender(from).unwrap();
     transfer_and_call_internal(
         from,
@@ -372,8 +359,8 @@ async fn spend_and_call(
         notify_method,
         data,
     )
-    .await
-    .unwrap();
+        .await
+        .unwrap()
 }
 
 #[query(name = "shardGetSupply")]

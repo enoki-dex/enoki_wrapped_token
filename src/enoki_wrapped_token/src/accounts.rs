@@ -20,8 +20,8 @@ thread_local! {
     static USER_ACCOUNTS: RefCell<UserAccounts> = RefCell::new(UserAccounts::default());
 }
 
-pub fn export_stable_storage() -> (UserAccounts,) {
-    (USER_ACCOUNTS.with(|a| a.take()),)
+pub fn export_stable_storage() -> (UserAccounts, ) {
+    (USER_ACCOUNTS.with(|a| a.take()), )
 }
 
 pub fn import_stable_storage(user_accounts: UserAccounts) {
@@ -36,7 +36,7 @@ pub fn get_user_account(user: &Principal) -> Option<UserAccount> {
 #[candid_method(update)]
 async fn register(address: Principal) -> Principal {
     if let Some(existing) =
-        USER_ACCOUNTS.with(|a| a.borrow().get(&address).map(|a| a.assigned_shard))
+    USER_ACCOUNTS.with(|a| a.borrow().get(&address).map(|a| a.assigned_shard))
     {
         return existing;
     }
@@ -45,7 +45,7 @@ async fn register(address: Principal) -> Principal {
     USER_ACCOUNTS.with(|a| a.borrow_mut().insert(address, new_user));
     update_shard_accounts(assigned_shard, |count| *count += 1);
 
-    let response: Result<()> = ic_cdk::call(assigned_shard, "createAccount", (address,))
+    let response: Result<()> = ic_cdk::call(assigned_shard, "createAccount", (address, ))
         .await
         .map_err(|err| err.into());
 
@@ -83,7 +83,7 @@ async fn transfer(to: Principal, amount: Nat) {
         "transferFromManager",
         (from, to_shard, to, amount),
     )
-    .await
-    .map_err(|err| err.into());
+        .await
+        .map_err(|err| err.into());
     response.unwrap()
 }

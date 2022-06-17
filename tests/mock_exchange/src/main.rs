@@ -68,7 +68,7 @@ fn get_deposit_shard_id() -> Principal {
 
 #[update(name = "deposit")]
 #[candid_method(update)]
-async fn deposit(notification: ShardedTransferNotification) {
+async fn deposit(notification: ShardedTransferNotification) -> String {
     assert_from_token_shard(ic_cdk::caller()).await;
     assert_eq!(notification.to, ic_cdk::id());
     STATE.with(|s| {
@@ -78,6 +78,7 @@ async fn deposit(notification: ShardedTransferNotification) {
             .or_default()
             .add_assign(notification.value);
     });
+    "OK".to_string()
 }
 
 #[update(name = "withdrawAll")]

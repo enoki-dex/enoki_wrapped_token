@@ -1,3 +1,5 @@
+extern crate core;
+
 #[allow(unused_imports)]
 use candid::{candid_method, Nat, Principal};
 use ic_cdk_macros::*;

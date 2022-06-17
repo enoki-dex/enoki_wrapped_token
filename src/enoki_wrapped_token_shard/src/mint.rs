@@ -1,4 +1,4 @@
-use candid::{candid_method, types::number::Nat, Principal};
+use candid::{candid_method, Principal, types::number::Nat};
 use ic_cdk_macros::*;
 
 use enoki_wrapped_token_shared::types::*;

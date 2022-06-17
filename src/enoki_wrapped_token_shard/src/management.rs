@@ -109,48 +109,45 @@ fn set_fee(new_fee: Nat) -> Result<()> {
 
 #[update(name = "initShard")]
 #[candid_method(update, rename = "initShard")]
-fn init_shard(underlying_token: Principal, sibling_shards: Vec<Principal>, fee: Nat) -> Result<()> {
+fn init_shard(underlying_token: Principal, sibling_shards: Vec<Principal>, fee: Nat) {
     MANAGER_CONTRACT_DATA.with(|d| {
         let mut data = d.borrow_mut();
         if ic_cdk::caller() == data.manager_contract {
             if data.underlying_token != underlying_token {
-                return Err(TxError::Other("Incompatible shard".to_string()));
+                panic!("{:?}", TxError::Other("Incompatible shard".to_string()));
             }
             for shard in sibling_shards {
                 data.sibling_shards.insert(shard);
             }
             data.fee = fee;
-            Ok(())
         } else {
-            Err(TxError::Unauthorized)
+            panic!("{:?}", TxError::Unauthorized)
         }
-    })
+    });
 }
 
 #[update(name = "addSiblingShard")]
 #[candid_method(update, rename = "addSiblingShard")]
-fn add_sibling_shard(new_shard: Principal) -> Result<()> {
+fn add_sibling_shard(new_shard: Principal) {
     MANAGER_CONTRACT_DATA.with(|d| {
         let mut data = d.borrow_mut();
         if ic_cdk::caller() == data.manager_contract {
             data.sibling_shards.insert(new_shard);
-            Ok(())
         } else {
-            Err(TxError::Unauthorized)
+            panic!("{:?}", TxError::Unauthorized)
         }
     })
 }
 
 #[update(name = "removeSiblingShard")]
 #[candid_method(update, rename = "removeSiblingShard")]
-fn remove_sibling_shard(shard: Principal) -> Result<()> {
+fn remove_sibling_shard(shard: Principal) {
     MANAGER_CONTRACT_DATA.with(|d| {
         let mut data = d.borrow_mut();
         if ic_cdk::caller() == data.manager_contract {
             data.sibling_shards.remove(&shard);
-            Ok(())
         } else {
-            Err(TxError::Unauthorized)
+            panic!("{:?}", TxError::Unauthorized)
         }
     })
 }
