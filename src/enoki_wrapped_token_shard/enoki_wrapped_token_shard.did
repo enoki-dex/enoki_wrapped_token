@@ -26,10 +26,11 @@ type TxError = variant {
   AccountAlreadyExists;
   Other : text;
 };
-service : (principal, principal) -> {
+service : () -> {
   addSiblingShard : (principal) -> ();
   addSpender : (principal) -> ();
   createAccount : (principal) -> ();
+  finishInit : (principal, principal) -> ();
   getAccruedFees : () -> (nat) query;
   getFee : () -> (nat) query;
   getManagementDetails : () -> (ManagerContractData) query;

@@ -13,10 +13,11 @@ type Stats = record {
   cycles : nat64;
   total_supply : nat;
 };
-service : (principal, text, text, text, nat8, nat) -> {
+service : () -> {
   addShard : (principal) -> ();
   balanceOf : (principal) -> (nat);
   decimals : () -> (nat8) query;
+  finishInit : (principal, text, text, text, nat8, nat) -> ();
   getAccruedFees : () -> (nat) query;
   getAssignedShardId : (principal) -> (principal) query;
   getFee : () -> (nat) query;

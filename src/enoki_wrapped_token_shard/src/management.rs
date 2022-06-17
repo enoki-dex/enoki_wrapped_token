@@ -1,13 +1,20 @@
 use std::cell::RefCell;
 use std::collections::HashSet;
 
-use candid::{candid_method, CandidType, Deserialize, Principal, types::number::Nat};
+use candid::{candid_method, types::number::Nat, CandidType, Deserialize, Principal};
 use ic_cdk_macros::*;
 
 use enoki_wrapped_token_shared::types::*;
 
 use crate::stable::StableManagerContractData;
 
+pub fn assert_is_owner() -> Result<()> {
+    if MANAGER_CONTRACT_DATA.with(|s| s.borrow().owner) == ic_cdk::caller() {
+        Ok(())
+    } else {
+        Err(TxError::Unauthorized)
+    }
+}
 pub fn assert_is_manager_contract() -> Result<()> {
     if MANAGER_CONTRACT_DATA.with(|s| s.borrow().manager_contract) == ic_cdk::caller() {
         Ok(())
@@ -50,6 +57,14 @@ impl Default for ManagerContractData {
 pub fn init_manager_data(data: ManagerContractData) {
     MANAGER_CONTRACT_DATA.with(|d| {
         *d.borrow_mut() = data;
+    });
+}
+
+pub fn init_manager_and_token(manager: Principal, token: Principal) {
+    MANAGER_CONTRACT_DATA.with(|d| {
+        let mut d = d.borrow_mut();
+        d.manager_contract = manager;
+        d.underlying_token = token;
     });
 }
 
@@ -152,9 +167,9 @@ fn remove_sibling_shard(shard: Principal) {
     })
 }
 
-pub fn export_stable_storage() -> (StableManagerContractData, ) {
+pub fn export_stable_storage() -> (StableManagerContractData,) {
     let manager_data: StableManagerContractData = MANAGER_CONTRACT_DATA.with(|b| b.take()).into();
-    (manager_data, )
+    (manager_data,)
 }
 
 pub fn import_stable_storage(manager_data: StableManagerContractData) {

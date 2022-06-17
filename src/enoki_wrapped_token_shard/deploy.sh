@@ -11,8 +11,8 @@ fi
 i=1
 num_shards=${NUM_SHARDS:-2}
 while [ $i -le $num_shards ]; do
-  dfx build "$1_shard_$i"
-  yes yes | dfx canister install "$1_shard_$i" --argument "($3, $TOKEN_ID)" -m=reinstall
+  dfx deploy "$1_shard_$i" --argument "($3, $TOKEN_ID)"
+  dfx canister call "$1_shard_$i" finishInit "($3, $TOKEN_ID)"
   dfx canister call $1 "addShard" "(principal \"$(dfx canister id "$1_shard_$i")\")"
   true $((i++))
 done

@@ -55,6 +55,10 @@ pub fn init_management_data(stats: ManagementStats) {
     MANAGEMENT_STATS.with(|s| s.replace(stats));
 }
 
+pub fn init_fee(fee: Nat) {
+    MANAGEMENT_STATS.with(|s| s.borrow_mut().fee = fee);
+}
+
 #[update(name = "stats")]
 #[candid_method(update)]
 async fn stats() -> Stats {
