@@ -8,15 +8,18 @@ import {
 } from './users.js';
 import timer from './timer.js';
 import { readFile, writeFile } from 'fs/promises';
+import { readFileSync} from 'fs';
 import { fileURLToPath } from 'url';
 import * as path from 'path';
 import { get_errors, get_total_number_of_timeouts, reset_timeouts } from './dfx.js';
-import parameters from './parameters.json' assert { type: 'json' };
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const OUTPUT_FILE = path.resolve(__dirname, 'stats.json');
 const NUM_SHARDS = parseInt(process.env.NUM_SHARDS) || 1;
+
+const parametersStr = readFileSync(path.resolve(__dirname, 'parameters.json'));
+const parameters = JSON.parse(parametersStr);
 
 const run = async () => {
   await init_users(parameters.number_of_users);

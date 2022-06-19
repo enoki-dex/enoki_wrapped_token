@@ -1,0 +1,170 @@
+{
+  "1;10;1": {
+    "num_shards": 1,
+    "num_users": 10,
+    "num_transfers_per_user": 1,
+    "funding_time": 1573.068125,
+    "transfers_time": 1568.62825,
+    "number_of_timeouts": 0
+  },
+  "1;100;1": {
+    "num_shards": 1,
+    "num_users": 100,
+    "num_transfers_per_user": 1,
+    "funding_time": 2691.575791,
+    "transfers_time": 2701.493542,
+    "number_of_timeouts": 0
+  },
+  "1;1000;1": {
+    "num_shards": 1,
+    "num_users": 1000,
+    "num_transfers_per_user": 1,
+    "funding_time": 64417.00525,
+    "transfers_time": 62415.245,
+    "number_of_timeouts": 1995
+  },
+  "1;20;1": {
+    "num_shards": 1,
+    "num_users": 20,
+    "num_transfers_per_user": 1,
+    "funding_time": 1670.9575,
+    "transfers_time": 1686.2356249999998,
+    "number_of_timeouts": 0
+  },
+  "1;30;1": {
+    "num_shards": 1,
+    "num_users": 30,
+    "num_transfers_per_user": 1,
+    "funding_time": 1692.5988750000001,
+    "transfers_time": 3468.941833,
+    "number_of_timeouts": 0
+  },
+  "1;40;1": {
+    "num_shards": 1,
+    "num_users": 40,
+    "num_transfers_per_user": 1,
+    "funding_time": 1802.1105830000001,
+    "transfers_time": 2508.713125,
+    "number_of_timeouts": 0
+  },
+  "1;50;1": {
+    "num_shards": 1,
+    "num_users": 50,
+    "num_transfers_per_user": 1,
+    "funding_time": 1825.546625,
+    "transfers_time": 1781.6970000000001,
+    "number_of_timeouts": 0
+  },
+  "1;60;1": {
+    "num_shards": 1,
+    "num_users": 60,
+    "num_transfers_per_user": 1,
+    "funding_time": 2651.642375,
+    "transfers_time": 2558.072458,
+    "number_of_timeouts": 0
+  },
+  "1;70;1": {
+    "num_shards": 1,
+    "num_users": 70,
+    "num_transfers_per_user": 1,
+    "funding_time": 2641.436584,
+    "transfers_time": 2633.951708,
+    "number_of_timeouts": 0
+  },
+  "1;80;1": {
+    "num_shards": 1,
+    "num_users": 80,
+    "num_transfers_per_user": 1,
+    "funding_time": 2616.064542,
+    "transfers_time": 2434.942041,
+    "number_of_timeouts": 0
+  },
+  "1;90;1": {
+    "num_shards": 1,
+    "num_users": 90,
+    "num_transfers_per_user": 1,
+    "funding_time": 2824.731625,
+    "transfers_time": 2784.4925,
+    "number_of_timeouts": 0
+  },
+  "1;200;1": {
+    "num_shards": 1,
+    "num_users": 200,
+    "num_transfers_per_user": 1,
+    "funding_time": 35948.483875,
+    "transfers_time": 37613.931,
+    "number_of_timeouts": 51
+  },
+  "1;300;1": {
+    "num_shards": 1,
+    "num_users": 300,
+    "num_transfers_per_user": 1,
+    "funding_time": 39197.532125,
+    "transfers_time": 10446.287708,
+    "number_of_timeouts": 220
+  },
+  "1;120;1": {
+    "num_shards": 1,
+    "num_users": 120,
+    "num_transfers_per_user": 1,
+    "funding_time": 2943.587625,
+    "transfers_time": 3580.779709,
+    "number_of_timeouts": 0
+  },
+  "1;140;1": {
+    "num_shards": 1,
+    "num_users": 140,
+    "num_transfers_per_user": 1,
+    "funding_time": 3609.9020419999997,
+    "transfers_time": 4501.376833,
+    "number_of_timeouts": 0
+  },
+  "1;150;1": {
+    "num_shards": 1,
+    "num_users": 150,
+    "num_transfers_per_user": 1,
+    "funding_time": 3690.573708,
+    "transfers_time": 3652.39,
+    "number_of_timeouts": 0
+  },
+  "1;160;1": {
+    "num_shards": 1,
+    "num_users": 160,
+    "num_transfers_per_user": 1,
+    "funding_time": 4578.949833,
+    "transfers_time": 4514.357958,
+    "number_of_timeouts": 0
+  },
+  "1;180;1": {
+    "num_shards": 1,
+    "num_users": 180,
+    "num_transfers_per_user": 1,
+    "funding_time": 5165.542042,
+    "transfers_time": 6465.250959,
+    "number_of_timeouts": 29
+  },
+  "1;170;1": {
+    "num_shards": 1,
+    "num_users": 170,
+    "num_transfers_per_user": 1,
+    "funding_time": 4552.598833,
+    "transfers_time": 7209.407375,
+    "number_of_timeouts": 4
+  },
+  "1;165;1": {
+    "num_shards": 1,
+    "num_users": 165,
+    "num_transfers_per_user": 1,
+    "funding_time": 4695.862167,
+    "transfers_time": 5315.458417,
+    "number_of_timeouts": 6
+  },
+  "1;10000;1": {
+    "num_shards": 1,
+    "num_users": 10000,
+    "num_transfers_per_user": 1,
+    "funding_time": 641105.449917,
+    "transfers_time": 503868.336875,
+    "number_of_timeouts": 59440
+  }
+}

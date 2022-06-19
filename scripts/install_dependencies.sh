@@ -30,7 +30,7 @@ dfx canister create xtc_token
 dfx build xtc_token
 
 export ROOT_PRINCIPAL="principal \"$(dfx identity get-principal)\""
-dfx canister install xtc_token --argument="(\"https://dank.ooo/images/dfinity-gradient-p-500.png\", \"Cycles Token\", \"XTC\", 12, 10000000000000000, $ROOT_PRINCIPAL, 10000)"
+dfx canister install xtc_token --argument="(\"https://dank.ooo/images/dfinity-gradient-p-500.png\", \"Cycles Token\", \"XTC\", 12, 10000000000000000000, $ROOT_PRINCIPAL, 10000)"
 
 # set fees
 #dfx canister call xtc_token setFeeTo "($ROOT_PRINCIPAL)"
