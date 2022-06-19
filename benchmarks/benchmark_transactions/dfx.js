@@ -27,7 +27,7 @@ export const command = async (instructions, retry_if) => {
             number_of_timeouts++;
             errors.push(e.message);
             if (typeof retry_if === 'function') {
-                await setTimeout(Math.round(1000 + (Math.random() * 3)));
+                await setTimeout(Math.round(1000 + (Math.random() * 3000)));
                 if (await Promise.resolve(retry_if())) {
                     continue;
                 }
